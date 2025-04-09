@@ -14,9 +14,6 @@ import {FixedPriceOracle} from "@finance/oracles/FixedPriceOracle.sol";
 contract Accounting is CoreControlled {
     using FixedPointMathLib for uint256;
 
-    event PriceSet(uint256 indexed timestamp, address indexed asset, uint256 price);
-    event OracleSet(uint256 indexed timestamp, address indexed asset, address oracle);
-
     /// @notice reference to the farm registry
     address public immutable farmRegistry;
 
@@ -35,13 +32,11 @@ contract Accounting is CoreControlled {
     /// @notice set the oracle for an asset
     function setOracle(address _asset, address _oracle) external onlyCoreRole(CoreRoles.ORACLE_MANAGER) {
         oracle[_asset] = _oracle;
-        emit OracleSet(block.timestamp, _asset, _oracle);
     }
 
     /// @notice set the price of an asset
     function setPrice(address _asset, uint256 _price) external onlyCoreRole(CoreRoles.ORACLE_MANAGER) {
         FixedPriceOracle(oracle[_asset]).setPrice(_price);
-        emit PriceSet(block.timestamp, _asset, _price);
     }
 
     /// -------------------------------------------------------------------------------------------

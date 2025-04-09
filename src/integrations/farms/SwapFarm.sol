@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
@@ -16,13 +16,12 @@ import {IMaturityFarm, IFarm} from "@interfaces/IMaturityFarm.sol";
 /// assetTokens into yield-bearing USD-denominated tokens (e.g. treasuries, mmfs, etc).
 /// @dev This farm is considered illiquid as swapping in & out will incur slippage.
 contract SwapFarm is Farm, IMaturityFarm {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for ERC20;
     using FixedPointMathLib for uint256;
 
     error SwapFailed(bytes returnData);
     error SwapCooldown();
     error SlippageTooHigh(uint256 minAssetsOut, uint256 assetsReceived);
-    error RouterNotEnabled(address router);
 
     /// @notice Reference to the wrap token (to which assetTokens are swapped).
     address public immutable wrapToken;
@@ -30,31 +29,21 @@ contract SwapFarm is Farm, IMaturityFarm {
     /// @notice Reference to an oracle for the wrap token (for wrapToken <-> assetToken exchange rates).
     address public immutable wrapTokenOracle;
 
-    /// @notice Duration of the farm (maturity() returns block.timestamp + duration)
-    /// @dev This can be set to 0, treating the farm as a liquid farm, however there will be
-    /// slippage to swap in & out of the farm, which acts as some kind of entrance & exit fees.
-    /// Consider setting a duration that is at least long enough to earn yield that covers the swap fees.
-    uint256 private immutable duration;
-
     /// @notice Max slippage for wrapping and unwrapping assetTokens <-> wrapTokens.
     /// @dev Stored as a percentage with 18 decimals of precision, of the minimum
     /// position size compared to the previous position size (so actually 1 - maxSlippage).
-    uint256 public maxSlippage = 0.995e18; // 99.5%
-
-    /// @notice Mapping of routers that can be used to swap assetTokens <-> wrapTokens.
-    mapping(address => bool) public enabledRouters;
+    uint256 private constant _MAX_SLIPPAGE = 0.995e18; // 99.5%
 
     /// @notice timestamp of last swap
     uint256 public lastSwap = 1;
     /// @notice cooldown period after a swap before another swap can be performed
-    uint256 public constant _SWAP_COOLDOWN = 4 hours;
+    uint256 public constant _SWAP_COOLDOWN = 10 minutes;
 
-    constructor(address _core, address _assetToken, address _wrapToken, address _wrapTokenOracle, uint256 _duration)
+    constructor(address _core, address _assetToken, address _wrapToken, address _wrapTokenOracle)
         Farm(_core, _assetToken)
     {
         wrapToken = _wrapToken;
         wrapTokenOracle = _wrapTokenOracle;
-        duration = _duration;
     }
 
     /// @notice Maturity is virtually set as "always in the future" to reflect
@@ -64,29 +53,18 @@ contract SwapFarm is Farm, IMaturityFarm {
     /// because we don't want to allocate funds there unless they stay for at least enough time
     /// to earn yield that covers the swap fees (that act as some kind of entrance & exit fees).
     function maturity() public view override returns (uint256) {
-        return block.timestamp + duration;
+        return block.timestamp + 30 days;
     }
 
     /// @notice Returns the total assets in the farm
     function assets() public view override(Farm, IFarm) returns (uint256) {
-        uint256 wrapTokenAssetsValue = convertToAssets(IERC20(wrapToken).balanceOf(address(this)));
+        uint256 wrapTokenAssetsValue = convertToAssets(ERC20(wrapToken).balanceOf(address(this)));
         return super.assets() + wrapTokenAssetsValue;
     }
 
     /// @notice Current liquidity of the farm is the held assetTokens.
     function liquidity() public view override returns (uint256) {
         return super.assets();
-    }
-
-    /// @notice setter for the max tolerated slippage
-    function setMaxSlippage(uint256 _maxSlippage) external onlyCoreRole(CoreRoles.GOVERNOR) {
-        maxSlippage = _maxSlippage;
-    }
-
-    /// @notice Allows governance to manage the whitelist of routers to be used by the
-    /// keeper with FARM_SWAP_CALLER role.
-    function setEnabledRouter(address _router, bool _enabled) external onlyCoreRole(CoreRoles.GOVERNOR) {
-        enabledRouters[_router] = _enabled;
     }
 
     /// @dev Deposit does nothing, assetTokens are just held on this farm.
@@ -96,7 +74,7 @@ contract SwapFarm is Farm, IMaturityFarm {
     /// @dev Withdrawal can only handle the held assetTokens (i.e. the liquidity()).
     /// @dev See call to unwrapAssets() for the actual swap out of wrapTokens.
     function _withdraw(uint256 _amount, address _to) internal override {
-        IERC20(assetToken).safeTransfer(_to, _amount);
+        ERC20(assetToken).safeTransfer(_to, _amount);
     }
 
     /// @notice Converts a number of wrapTokens to assetTokens based on oracle rates.
@@ -114,21 +92,20 @@ contract SwapFarm is Farm, IMaturityFarm {
         whenNotPaused
         onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
     {
-        require(enabledRouters[_router], RouterNotEnabled(_router));
         require(block.timestamp > lastSwap + _SWAP_COOLDOWN, SwapCooldown());
         lastSwap = block.timestamp;
-        uint256 wrapTokenBalanceBefore = IERC20(wrapToken).balanceOf(address(this));
+        uint256 wrapTokenBalanceBefore = ERC20(wrapToken).balanceOf(address(this));
 
         // do swap
-        IERC20(assetToken).forceApprove(_router, _assetsIn);
+        ERC20(assetToken).approve(_router, _assetsIn);
         (bool success, bytes memory returnData) = _router.call(_calldata);
         require(success, SwapFailed(returnData));
 
         // check slippage
-        uint256 wrapTokenReceived = IERC20(wrapToken).balanceOf(address(this)) - wrapTokenBalanceBefore;
-        uint256 minAssetsOut = _assetsIn.mulWadDown(maxSlippage);
+        uint256 wrapTokenReceived = ERC20(wrapToken).balanceOf(address(this)) - wrapTokenBalanceBefore;
+        uint256 minAssetsOut = _assetsIn.mulWadDown(_MAX_SLIPPAGE);
         uint256 assetsReceived = convertToAssets(wrapTokenReceived);
-        require(assetsReceived >= minAssetsOut, SlippageTooHigh(minAssetsOut, assetsReceived));
+        require(assetsReceived > minAssetsOut, SlippageTooHigh(minAssetsOut, assetsReceived));
     }
 
     /// @notice Unwraps wrapTokens to assetTokens.
@@ -139,19 +116,18 @@ contract SwapFarm is Farm, IMaturityFarm {
         whenNotPaused
         onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
     {
-        require(enabledRouters[_router], RouterNotEnabled(_router));
         require(block.timestamp > lastSwap + _SWAP_COOLDOWN, SwapCooldown());
         lastSwap = block.timestamp;
-        uint256 assetsBefore = IERC20(assetToken).balanceOf(address(this));
+        uint256 assetsBefore = ERC20(assetToken).balanceOf(address(this));
 
         // do swap
-        IERC20(wrapToken).forceApprove(_router, _wrapTokenAmount);
+        ERC20(wrapToken).approve(_router, _wrapTokenAmount);
         (bool success, bytes memory returnData) = _router.call(_calldata);
         require(success, SwapFailed(returnData));
 
         // check slippage
-        uint256 assetsReceived = IERC20(assetToken).balanceOf(address(this)) - assetsBefore;
-        uint256 minAssetsOut = convertToAssets(_wrapTokenAmount).mulWadDown(maxSlippage);
-        require(assetsReceived >= minAssetsOut, SlippageTooHigh(minAssetsOut, assetsReceived));
+        uint256 assetsReceived = ERC20(assetToken).balanceOf(address(this)) - assetsBefore;
+        uint256 minAssetsOut = convertToAssets(_wrapTokenAmount).mulWadDown(_MAX_SLIPPAGE);
+        require(assetsReceived > minAssetsOut, SlippageTooHigh(minAssetsOut, assetsReceived));
     }
 }

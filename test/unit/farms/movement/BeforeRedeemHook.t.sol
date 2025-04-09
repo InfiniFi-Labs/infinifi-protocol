@@ -197,18 +197,6 @@ contract BeforeRedeemHookTest is BaseHookTest, BeforeRedeemHook {
         assertEq(totalAssetsOf(address(0), 0), 70 ether, "Total liquid assets should be 70 ether after redeeming");
     }
 
-    /// @notice Test redeem when asset is not enabled
-    function testBeforeRedeemAssetNotEnabled()
-        public
-        configureFarms(30 ether, 30 ether, 30 ether)
-        setWeights(100, 0, 0)
-        setAmount(20 ether)
-    {
-        controllerFarm.setAsset(address(0xdead));
-        vm.expectRevert(abi.encodeWithSelector(BeforeRedeemHook.AssetNotEnabled.selector, address(0xdead)));
-        controllerFarm.callRedeemHook(this, amount);
-    }
-
     /// @notice Test redeem when farms have very uneven distribution
     function testBeforeRedeemUnevenDistribution()
         public

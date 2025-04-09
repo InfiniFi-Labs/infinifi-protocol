@@ -2,17 +2,13 @@
 pragma solidity 0.8.28;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {Farm} from "@integrations/Farm.sol";
 
 /// @title ERC4626 Farm
 /// @notice This contract is used to deploy assets in an ERC4626 vault
 contract ERC4626Farm is Farm {
-    using SafeERC20 for IERC20;
-
     /// @notice Error thrown when the farm asset token and the vault asset do not match
     error AssetMismatch(address _assetToken, address _vaultAsset);
 
@@ -35,7 +31,7 @@ contract ERC4626Farm is Farm {
 
     function _deposit() internal override {
         uint256 availableAssets = ERC20(assetToken).balanceOf(address(this));
-        IERC20(assetToken).forceApprove(vault, availableAssets);
+        ERC20(assetToken).approve(vault, availableAssets);
         ERC4626(vault).deposit(availableAssets, address(this));
     }
 

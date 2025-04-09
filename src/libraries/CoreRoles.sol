@@ -8,11 +8,8 @@ library CoreRoles {
     /// @notice the all-powerful role. Controls all other roles and protocol functionality.
     bytes32 internal constant GOVERNOR = keccak256("GOVERNOR");
 
-    /// @notice Can pause contracts in an emergency.
-    bytes32 internal constant PAUSE = keccak256("PAUSE");
-
-    /// @notice Can unpause contracts after an emergency.
-    bytes32 internal constant UNPAUSE = keccak256("UNPAUSE");
+    /// @notice the protector role. Can pause contracts and revoke roles in an emergency.
+    bytes32 internal constant GUARDIAN = keccak256("GUARDIAN");
 
     /// ----------- User Flow Management ---------------------
 
@@ -30,19 +27,17 @@ library CoreRoles {
     /// @notice can mint arbitrarily & burn held LockedPositionToken
     bytes32 internal constant LOCKED_TOKEN_MANAGER = keccak256("LOCKED_TOKEN_MANAGER");
 
-    /// @notice can prevent transfers of LockedPositionToken
-    bytes32 internal constant TRANSFER_RESTRICTOR = keccak256("TRANSFER_RESTRICTOR");
+    /// @notice can prevent transfers/redemptions of DebtToken
+    /// @dev /!\ be careful with this role, as it can lock funds indefinitely
+    bytes32 internal constant ACTION_RESTRICTOR = keccak256("ACTION_RESTRICTOR");
 
     /// ----------- Funds Management & Accounting ---------------
 
     /// @notice contract that can allocate funds between farms
     bytes32 internal constant FARM_MANAGER = keccak256("FARM_MANAGER");
 
-    /// @notice addresses who can use the manual rebalancer
-    bytes32 internal constant MANUAL_REBALANCER = keccak256("MANUAL_REBALANCER");
-
-    /// @notice addresses who can use the periodic rebalancer
-    bytes32 internal constant PERIODIC_REBALANCER = keccak256("PERIODIC_REBALANCER");
+    /// @notice addresses who can use the allocators
+    bytes32 internal constant FARM_MANAGER_ADMIN = keccak256("FARM_MANAGER_ADMIN");
 
     /// @notice addresses who can trigger swaps in Farms
     bytes32 internal constant FARM_SWAP_CALLER = keccak256("FARM_SWAP_CALLER");

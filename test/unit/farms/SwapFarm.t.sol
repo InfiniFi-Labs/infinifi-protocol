@@ -21,13 +21,10 @@ contract SwapFarmUnitTest is Fixture {
         super.setUp();
 
         wrapTokenOracle = new FixedPriceOracle(address(core), 0.5e30); // 1 wrapped token = 2 USDC
-        farm = new SwapFarm(address(core), address(usdc), address(wrapToken), address(wrapTokenOracle), 30 days);
+        farm = new SwapFarm(address(core), address(usdc), address(wrapToken), address(wrapTokenOracle));
 
         vm.label(address(farm), "SwapFarm");
         vm.label(address(router), "MockSwapRouter");
-
-        vm.prank(governorAddress);
-        farm.setEnabledRouter(address(router), true);
     }
 
     function testInitialState() public view {
@@ -208,17 +205,5 @@ contract SwapFarmUnitTest is Fixture {
         assertEq(farm.assets(), 1000e6, "Error: SwapFarm's assets is not correct after unwrapping");
         assertEq(usdc.balanceOf(address(farm)), 1000e6, "Error: SwapFarm's assets should be transferred to farm");
         assertEq(farm.liquidity(), 1000e6, "Error: SwapFarm's liquidity should be correct after unwrapping");
-    }
-
-    function testSetMaxSlippage() public {
-        assertEq(farm.maxSlippage(), 0.995e18, "Error: SwapFarm's maxSlippage should be 0.995e18");
-
-        vm.expectRevert("UNAUTHORIZED");
-        farm.setMaxSlippage(0.98e18);
-
-        vm.prank(governorAddress);
-        farm.setMaxSlippage(0.98e18);
-
-        assertEq(farm.maxSlippage(), 0.98e18, "Error: SwapFarm's maxSlippage should be 0.98e18");
     }
 }

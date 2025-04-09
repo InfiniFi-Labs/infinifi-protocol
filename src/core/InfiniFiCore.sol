@@ -18,16 +18,14 @@ contract InfiniFiCore is AccessControlEnumerable {
 
         // Initial roles setup: direct hierarchy, everything under governor
         _setRoleAdmin(CoreRoles.GOVERNOR, CoreRoles.GOVERNOR);
-        _setRoleAdmin(CoreRoles.PAUSE, CoreRoles.GOVERNOR);
-        _setRoleAdmin(CoreRoles.UNPAUSE, CoreRoles.GOVERNOR);
+        _setRoleAdmin(CoreRoles.GUARDIAN, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.ENTRY_POINT, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.RECEIPT_TOKEN_MINTER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.RECEIPT_TOKEN_BURNER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.LOCKED_TOKEN_MANAGER, CoreRoles.GOVERNOR);
-        _setRoleAdmin(CoreRoles.TRANSFER_RESTRICTOR, CoreRoles.GOVERNOR);
+        _setRoleAdmin(CoreRoles.ACTION_RESTRICTOR, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.FARM_MANAGER, CoreRoles.GOVERNOR);
-        _setRoleAdmin(CoreRoles.MANUAL_REBALANCER, CoreRoles.GOVERNOR);
-        _setRoleAdmin(CoreRoles.PERIODIC_REBALANCER, CoreRoles.GOVERNOR);
+        _setRoleAdmin(CoreRoles.FARM_MANAGER_ADMIN, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.FARM_SWAP_CALLER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.ORACLE_MANAGER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.FINANCE_MANAGER, CoreRoles.GOVERNOR);

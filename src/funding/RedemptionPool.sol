@@ -17,13 +17,12 @@ abstract contract RedemptionPool {
     error EnqueueAmountZero();
     error NoPendingClaims(address _recipient);
     error QueueTooLong();
-    error EnqueueAmountTooLarge();
 
     /// ------------------- EVENTS -------------------
-    event RedemptionQueued(uint256 indexed timestamp, address recipient, uint256 amount);
-    event RedemptionPartiallyFunded(uint256 indexed timestamp, address recipient, uint256 amount);
-    event RedemptionFunded(uint256 indexed timestamp, address recipient, uint256 amount);
-    event RedemptionClaimed(uint256 indexed timestamp, address recipient, uint256 amount);
+    event RedemptionQueued(address indexed recipient, uint256 amount);
+    event RedemptionPartiallyFunded(address indexed recipient, uint256 amount);
+    event RedemptionFunded(address indexed recipient, uint256 amount);
+    event RedemptionClaimed(address indexed recipient, uint256 amount);
 
     /// ------------------- STATE -------------------
     /// @notice the redemption queue
@@ -32,7 +31,7 @@ abstract contract RedemptionPool {
     uint256 public constant MAX_QUEUE_LENGTH = 10000;
 
     /// @notice mapping from recipient => available claim
-    mapping(address recipient => uint256 assetAmount) public userPendingClaims;
+    mapping(address => uint256) public userPendingClaims;
 
     /// @notice total available redemptions
     /// @dev this is the amount of asset (USDC, ETH) that is currently redeemable and should be held by this contract
@@ -58,45 +57,38 @@ abstract contract RedemptionPool {
         returns (uint256, uint256)
     {
         require(_assetAmount > 0, FundingAmountZero());
-        uint256 totalEnqueuedRedemptionsBefore = totalEnqueuedRedemptions; // iUSD
+        uint256 totalEnqueuedRedemptionsBefore = totalEnqueuedRedemptions;
         // amount can be way higher than the amount being asked (total value of all tickets in the queue)
-        uint256 remainingAssets = _assetAmount; // USDC
-
-        uint256 _totalPendingClaims = totalPendingClaims;
-        uint256 _totalEnqueuedRedemptions = totalEnqueuedRedemptions;
-
+        uint256 remainingAssets = _assetAmount;
         while (remainingAssets > 0 && !queue.empty()) {
             RedemptionQueue.RedemptionRequest memory request = queue.front();
             // compute amount of asset to be redeemed by the amount of receipt token
-            uint256 assetRequired = uint256(request.amount).mulWadDown(_convertReceiptToAssetRatio); // USDC
-            uint256 receiptToBurn = request.amount; // iUSD
+            uint256 assetRequired = uint256(request.amount).mulWadDown(_convertReceiptToAssetRatio);
+            uint256 receiptToBurn = request.amount;
             if (assetRequired > remainingAssets) {
                 assetRequired = remainingAssets;
                 // here 'receiptToBurn' is the amount of remaining assets converted to receipt token using the ratio
-                receiptToBurn = remainingAssets.divWadUp(_convertReceiptToAssetRatio); // iUSD
-                uint96 newReceiptAmount = request.amount - uint96(receiptToBurn); // iUSD
-                queue.updateFront(newReceiptAmount); // iUSD
+                receiptToBurn = remainingAssets.divWadDown(_convertReceiptToAssetRatio);
+                uint96 newReceiptAmount = request.amount - uint96(receiptToBurn);
+                queue.updateFront(newReceiptAmount);
 
-                emit RedemptionPartiallyFunded(block.timestamp, request.recipient, remainingAssets); // USDC
+                emit RedemptionPartiallyFunded(request.recipient, remainingAssets);
             } else {
                 queue.popFront();
-                emit RedemptionFunded(block.timestamp, request.recipient, assetRequired); // USDC
+                emit RedemptionFunded(request.recipient, assetRequired);
             }
 
-            userPendingClaims[request.recipient] += assetRequired; // USDC
-            remainingAssets -= assetRequired; // USDC
-            _totalPendingClaims += assetRequired; // USDC
-            _totalEnqueuedRedemptions -= receiptToBurn; // iUSD
+            userPendingClaims[request.recipient] += assetRequired;
+            totalPendingClaims += assetRequired;
+            remainingAssets -= assetRequired;
+            totalEnqueuedRedemptions -= receiptToBurn;
         }
-
-        totalPendingClaims = _totalPendingClaims; // USDC
-        totalEnqueuedRedemptions = _totalEnqueuedRedemptions; // iUSD
 
         // the amount of receipt to burn is the difference between the total enqueued redemptions before and after the funding
         // if before we had 100 iUSD in the enqueued redemptions and after the funding we have 75 iUSD,
         // it means that 25 iUSD have been funded and thus 25 iUSD should be burned
-        uint256 receiptAmountToBurn = totalEnqueuedRedemptionsBefore - totalEnqueuedRedemptions; // iUSD
-        return (remainingAssets, receiptAmountToBurn); // [USDC, iUSD]
+        uint256 receiptAmountToBurn = totalEnqueuedRedemptionsBefore - totalEnqueuedRedemptions;
+        return (remainingAssets, receiptAmountToBurn);
     }
 
     /// @notice claim the redemption for a given recipient
@@ -109,7 +101,7 @@ abstract contract RedemptionPool {
         userPendingClaims[_recipient] = 0;
         totalPendingClaims -= amount;
 
-        emit RedemptionClaimed(block.timestamp, _recipient, amount);
+        emit RedemptionClaimed(_recipient, amount);
         return amount;
     }
 
@@ -124,9 +116,8 @@ abstract contract RedemptionPool {
         // and then any new redemption request will be accepted
         require(queue.length() < MAX_QUEUE_LENGTH, QueueTooLong());
         require(_amount > 0, EnqueueAmountZero());
-        require(_amount <= type(uint96).max, EnqueueAmountTooLarge());
         totalEnqueuedRedemptions += _amount;
         queue.pushBack(RedemptionQueue.RedemptionRequest({amount: uint96(_amount), recipient: _recipient}));
-        emit RedemptionQueued(block.timestamp, _recipient, _amount);
+        emit RedemptionQueued(_recipient, _amount);
     }
 }

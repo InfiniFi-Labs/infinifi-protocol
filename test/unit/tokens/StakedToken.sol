@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {console} from "@forge-std/console.sol";
 import {Fixture} from "@test/Fixture.t.sol";
 import {EpochLib} from "@libraries/EpochLib.sol";
+import {ActionRestriction} from "@core/ActionRestriction.sol";
 
 contract StakedTokenUnitTest is Fixture {
     using EpochLib for uint256;
@@ -26,8 +27,8 @@ contract StakedTokenUnitTest is Fixture {
     }
 
     function _depositRewards(uint256 _amount) internal {
-        _mintBackedReceiptTokens(address(yieldSharing), _amount);
         vm.startPrank(address(yieldSharing));
+        iusd.mint(address(yieldSharing), _amount);
         iusd.approve(address(siusd), _amount);
         siusd.depositRewards(_amount);
         vm.stopPrank();
@@ -42,9 +43,28 @@ contract StakedTokenUnitTest is Fixture {
     /// @notice test that the withdraw works
     function testWithdrawShouldWork() public {
         vm.prank(alice);
+
+        // skip for next block given restriction on mint and redemption on same block
+        vm.warp(block.timestamp + 1);
         siusd.withdraw(1000e18, alice, alice);
         assertEq(siusd.balanceOf(address(alice)), 0e18);
         assertEq(iusd.balanceOf(address(alice)), 1000e18);
+    }
+
+    /// @notice verify transfer restriction works
+    function testTransferShouldNotWorkInSameBlockAsMint() public {
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(ActionRestriction.ActionRestricted.selector, alice, block.timestamp + 1));
+        siusd.transfer(carol, 500e18);
+    }
+
+    /// @notice verify transfer restriction works
+    function testTransferShouldNotWorkTheBlockAfterMint() public {
+        vm.warp(block.timestamp + 12);
+        vm.prank(alice);
+        siusd.transfer(carol, 500e18);
+        assertEq(siusd.balanceOf(address(alice)), 500e18);
+        assertEq(siusd.balanceOf(address(carol)), 500e18);
     }
 
     /// @notice verify that not anyone can call depositRewards
@@ -182,32 +202,5 @@ contract StakedTokenUnitTest is Fixture {
         // because they have been slashed
         assertApproxEqAbs(siusd.maxWithdraw(alice), 400e18, 10);
         assertApproxEqAbs(siusd.maxWithdraw(bob), 200e18, 10);
-    }
-
-    function testMaxGetters() public {
-        uint256 amount = 123 * 1e18;
-
-        // mint iUSD to carol then stake it
-        _mintBackedReceiptTokens(carol, amount);
-        vm.startPrank(carol);
-        iusd.approve(address(siusd), amount);
-        siusd.mint(siusd.convertToShares(amount), carol);
-        vm.stopPrank();
-
-        uint256 carolShares = siusd.balanceOf(carol);
-        uint256 carolAssets = siusd.previewRedeem(carolShares);
-
-        assertEq(siusd.maxDeposit(carol), type(uint256).max);
-        assertEq(siusd.maxRedeem(carol), carolShares);
-        assertEq(siusd.maxMint(carol), type(uint256).max);
-        assertEq(siusd.maxWithdraw(carol), carolAssets);
-
-        vm.prank(guardianAddress);
-        siusd.pause();
-
-        assertEq(siusd.maxDeposit(carol), 0);
-        assertEq(siusd.maxRedeem(carol), 0);
-        assertEq(siusd.maxMint(carol), 0);
-        assertEq(siusd.maxWithdraw(carol), 0);
     }
 }

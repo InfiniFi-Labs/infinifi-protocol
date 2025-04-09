@@ -46,13 +46,11 @@ contract RedeemController is Farm, RedemptionPool, IRedeemController {
     function setMinRedemptionAmount(uint256 _minRedemptionAmount) external onlyCoreRole(CoreRoles.GOVERNOR) {
         require(_minRedemptionAmount > 0, RedeemAmountTooLow(_minRedemptionAmount, 1));
         minRedemptionAmount = _minRedemptionAmount;
-        emit MinRedemptionAmountUpdated(block.timestamp, _minRedemptionAmount);
     }
 
     /// @notice sets the beforeRedeemHook
     function setBeforeRedeemHook(address _beforeRedeemHook) external onlyCoreRole(CoreRoles.GOVERNOR) {
         beforeRedeemHook = _beforeRedeemHook;
-        emit BeforeRedeemHookChanged(block.timestamp, _beforeRedeemHook);
     }
 
     /// @notice calculate the amount of assetToken() out for a given `amountIn` of receiptToken()
@@ -164,6 +162,6 @@ contract RedeemController is Farm, RedemptionPool, IRedeemController {
     /// @param _convertRatio the convert ratio between receiptToken and assetToken
     /// @dev if the convertRatio is 0.8e18, then 1 asset token is worth 1e18 * 1e18 / 0.8e18 = 1.25e18 receipt tokens
     function _convertAssetToReceipt(uint256 _amountAsset, uint256 _convertRatio) internal pure returns (uint256) {
-        return _amountAsset.divWadUp(_convertRatio);
+        return _amountAsset.divWadDown(_convertRatio);
     }
 }

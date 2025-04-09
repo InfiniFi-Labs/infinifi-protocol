@@ -51,12 +51,12 @@ abstract contract CoreControlled is Pausable {
     }
 
     /// @notice set pausable methods to paused
-    function pause() public onlyCoreRole(CoreRoles.PAUSE) {
+    function pause() public onlyCoreRole(CoreRoles.GUARDIAN) {
         _pause();
     }
 
     /// @notice set pausable methods to unpaused
-    function unpause() public onlyCoreRole(CoreRoles.UNPAUSE) {
+    function unpause() public onlyCoreRole(CoreRoles.GUARDIAN) {
         _unpause();
     }
 
@@ -84,7 +84,6 @@ abstract contract CoreControlled is Pausable {
     function emergencyAction(Call[] calldata calls)
         external
         payable
-        virtual
         onlyCoreRole(CoreRoles.GOVERNOR)
         returns (bytes[] memory returnData)
     {

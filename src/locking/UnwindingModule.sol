@@ -36,15 +36,6 @@ contract UnwindingModule is CoreControlled {
     error UserUnwindingInprogress();
     error InvalidUnwindingEpochs(uint32 value);
 
-    event UnwindingStarted(
-        uint256 indexed timestamp, address user, uint256 receiptTokens, uint32 unwindingEpochs, uint256 rewardWeight
-    );
-    event UnwindingCanceled(
-        uint256 indexed timestamp, address user, uint256 startUnwindingTimestamp, uint32 newUnwindingEpochs
-    );
-    event Withdrawal(uint256 indexed timestamp, uint256 startUnwindingTimestamp, address owner);
-    event GlobalPointUpdated(uint256 indexed timestamp, GlobalPoint);
-
     /// @notice address of the receipt token
     address public immutable receiptToken;
 
@@ -69,9 +60,6 @@ contract UnwindingModule is CoreControlled {
 
     /// @notice mapping of epoch to global point
     mapping(uint32 epoch => GlobalPoint point) public globalPoints;
-
-    /// @notice mapping of epoch to positive bias changes
-    mapping(uint32 epoch => uint256 increase) public rewardWeightBiasIncreases;
 
     /// @notice mapping of epoch to positive slope changes
     mapping(uint32 epoch => uint256 increase) public rewardWeightIncreases;
@@ -122,25 +110,13 @@ contract UnwindingModule is CoreControlled {
             // add shares to the user for their earned rewards
             // note that the userRewardWeight is not increased proportionally to the rewards
             // received, which means that rewards are not compounding during unwinding.
-            if (epoch > position.fromEpoch - 1) {
-                // do not distribute rewards at the epoch where the user started unwinding,
-                // because the global reward weight is not updated yet and the user should not
-                // earn rewards before the start of their unwinding period (and the start of their
-                // unwinding is the next epoch after they called startUnwinding).
-                userShares += globalPoint.rewardShares.mulDivDown(userRewardWeight, globalPoint.totalRewardWeight);
-            }
+            userShares += globalPoint.rewardShares.mulDivDown(userRewardWeight, globalPoint.totalRewardWeight);
 
             // prepare a virtual global point for the next iteration
-            // slope changes
             globalPoint.totalRewardWeightDecrease -= rewardWeightIncreases[epoch];
             globalPoint.totalRewardWeightDecrease += rewardWeightDecreases[epoch];
-            // bias changes
-            globalPoint.totalRewardWeight += rewardWeightBiasIncreases[epoch];
-            // apply slope changes
             globalPoint.totalRewardWeight -= globalPoint.totalRewardWeightDecrease;
-            // update epoch
             globalPoint.epoch = epoch + 1;
-            // reset rewards
             globalPoint.rewardShares = 0;
 
             // if during the position's unwinding period, the reward weight should decrease
@@ -172,26 +148,24 @@ contract UnwindingModule is CoreControlled {
         rewardWeight -= roundingLoss;
 
         uint32 nextEpoch = uint32(block.timestamp.nextEpoch());
+        uint256 newShares = _amountToShares(_receiptTokens);
         uint32 endEpoch = nextEpoch + _unwindingEpochs;
-        {
-            uint256 newShares = _amountToShares(_receiptTokens);
-            positions[id] = UnwindingPosition({
-                shares: newShares,
-                fromEpoch: nextEpoch,
-                toEpoch: endEpoch,
-                fromRewardWeight: rewardWeight,
-                rewardWeightDecrease: rewardWeightDecrease
-            });
-            totalShares += newShares;
-        }
+        positions[id] = UnwindingPosition({
+            shares: newShares,
+            fromEpoch: nextEpoch,
+            toEpoch: endEpoch,
+            fromRewardWeight: rewardWeight,
+            rewardWeightDecrease: rewardWeightDecrease
+        });
+
+        totalShares += newShares;
         totalReceiptTokens += _receiptTokens;
 
         GlobalPoint memory point = _getLastGlobalPoint();
+        point.totalRewardWeight += rewardWeight;
         _updateGlobalPoint(point);
-        rewardWeightBiasIncreases[uint32(block.timestamp.epoch())] += rewardWeight;
         rewardWeightDecreases[nextEpoch] += rewardWeightDecrease;
         rewardWeightIncreases[endEpoch] += rewardWeightDecrease;
-        emit UnwindingStarted(block.timestamp, _user, _receiptTokens, _unwindingEpochs, _rewardWeight);
     }
 
     /// @notice Cancel an ongoing unwinding
@@ -212,18 +186,9 @@ contract UnwindingModule is CoreControlled {
         {
             // scope some state writing to avoid stack too deep
             GlobalPoint memory point = _getLastGlobalPoint();
-            if (currentEpoch == position.fromEpoch) {
-                // if cancelling unwinding on the first epoch, the reward weight has not started
-                // decreasing yet, so we do not need to update the global point's slope
-                // instead, we cancel the slope change that will happen in the next epoch
-                rewardWeightDecreases[currentEpoch] -= position.rewardWeightDecrease;
-            } else {
-                // if cancelling unwinding after the first epoch, we correct the global point's slope
-                point.totalRewardWeightDecrease -= position.rewardWeightDecrease;
-            }
+            point.totalRewardWeightDecrease -= position.rewardWeightDecrease;
             point.totalRewardWeight -= userRewardWeight;
             _updateGlobalPoint(point);
-            // cancel slope change that would have happened at the end of unwinding
             rewardWeightIncreases[position.toEpoch] -= position.rewardWeightDecrease;
 
             delete positions[id];
@@ -236,7 +201,6 @@ contract UnwindingModule is CoreControlled {
         require(_newUnwindingEpochs >= remainingEpochs, InvalidUnwindingEpochs(_newUnwindingEpochs));
         IERC20(receiptToken).approve(msg.sender, userBalance);
         LockingController(msg.sender).createPosition(userBalance, _newUnwindingEpochs, _user);
-        emit UnwindingCanceled(block.timestamp, _user, _startUnwindingTimestamp, _newUnwindingEpochs);
     }
 
     /// @notice Withdraw after an unwinding period has completed
@@ -263,7 +227,6 @@ contract UnwindingModule is CoreControlled {
         totalReceiptTokens -= userBalance;
 
         require(IERC20(receiptToken).transfer(_owner, userBalance), TransferFailed());
-        emit Withdrawal(block.timestamp, _startUnwindingTimestamp, _owner);
     }
 
     /// ----------------------------------------------------------------------------
@@ -286,14 +249,11 @@ contract UnwindingModule is CoreControlled {
 
     function _getLastGlobalPoint() internal view returns (GlobalPoint memory) {
         GlobalPoint memory point = globalPoints[lastGlobalPointEpoch];
+        // apply slope changes
         uint32 currentEpoch = uint32(block.timestamp.epoch());
-
-        // apply slope & bias changes if the current point
-        // must be extrapolated from a past global point
         for (uint32 epoch = point.epoch; epoch < currentEpoch; epoch++) {
             point.totalRewardWeightDecrease -= rewardWeightIncreases[epoch];
             point.totalRewardWeightDecrease += rewardWeightDecreases[epoch];
-            point.totalRewardWeight += rewardWeightBiasIncreases[epoch];
             point.totalRewardWeight -= point.totalRewardWeightDecrease;
             point.epoch = epoch + 1;
             point.rewardShares = 0;
@@ -304,7 +264,6 @@ contract UnwindingModule is CoreControlled {
     function _updateGlobalPoint(GlobalPoint memory point) internal {
         globalPoints[point.epoch] = point;
         lastGlobalPointEpoch = point.epoch;
-        emit GlobalPointUpdated(block.timestamp, point);
     }
 
     /// ----------------------------------------------------------------------------

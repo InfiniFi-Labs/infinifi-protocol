@@ -47,16 +47,16 @@ contract Deploy is Config, VerboseDeployment, ContractRegistry {
 
     function deployFarmAdministration()
         public
-        deployment("FarmAdministration", "Deploying farmRegistry & manualRebalancer")
+        deployment("FarmAdministration", "Deploying farmRegistry & farmRebalancer")
         returns (Deploy)
     {
         require(address(core) != address(0), "FarmAdministration: _core is zero address");
         farmRegistry = new FarmRegistry(address(core));
-        manualRebalancer = new ManualRebalancer(address(core), address(farmRegistry));
-        core.grantRole(CoreRoles.FARM_MANAGER, address(manualRebalancer));
+        farmRebalancer = new FarmRebalancer(address(core), address(farmRegistry));
+        core.grantRole(CoreRoles.FARM_MANAGER, address(farmRebalancer));
         string memory _json = "{}";
         _json = vm.serializeAddress("farmAdministration", "farmRegistry", address(farmRegistry));
-        _json = vm.serializeAddress("farmAdministration", "manualRebalancer", address(manualRebalancer));
+        _json = vm.serializeAddress("farmAdministration", "farmRebalancer", address(farmRebalancer));
         json = vm.serializeString("root", "farmAdministration", _json);
         return this;
     }
@@ -124,8 +124,6 @@ contract Deploy is Config, VerboseDeployment, ContractRegistry {
         accounting.setOracle(address(receiptToken), address(receiptTokenOracle));
         accounting.setOracle(address(USDC_MAINNET_ADDRESS), address(collateralOracle));
 
-        stakedToken.setYieldSharing(address(yieldSharing));
-
         core.grantRole(CoreRoles.ORACLE_MANAGER, address(accounting));
         core.grantRole(CoreRoles.ORACLE_MANAGER, address(yieldSharing));
         core.grantRole(CoreRoles.FINANCE_MANAGER, address(yieldSharing));
@@ -149,7 +147,7 @@ contract Deploy is Config, VerboseDeployment, ContractRegistry {
         require(address(farmRegistry) != address(0), "AllocationVoting: _farmRegistry is zero address");
         require(address(lockingController) != address(0), "AllocationVoting: _lockingController is zero address");
         allocationVoting = new AllocationVoting(address(core), address(lockingController), address(farmRegistry));
-        core.grantRole(CoreRoles.TRANSFER_RESTRICTOR, address(allocationVoting));
+        core.grantRole(CoreRoles.ACTION_RESTRICTOR, address(allocationVoting));
         json = vm.serializeAddress("root", "allocationVoting", address(allocationVoting));
         return this;
     }
@@ -178,7 +176,7 @@ contract Deploy is Config, VerboseDeployment, ContractRegistry {
 
         core.grantRole(CoreRoles.FARM_MANAGER, address(afterMintHook));
         core.grantRole(CoreRoles.FARM_MANAGER, address(beforeRedeemHook));
-        core.grantRole(CoreRoles.TRANSFER_RESTRICTOR, address(mintController));
+        core.grantRole(CoreRoles.ACTION_RESTRICTOR, address(mintController));
         core.grantRole(CoreRoles.RECEIPT_TOKEN_MINTER, address(mintController));
         core.grantRole(CoreRoles.RECEIPT_TOKEN_BURNER, address(redeemController));
 
@@ -196,8 +194,7 @@ contract Deploy is Config, VerboseDeployment, ContractRegistry {
         deployment("Roles", "Assigning governing roles to external contracts and EOAs")
     {
         core.grantRole(CoreRoles.GOVERNOR, governorAddress);
-        core.grantRole(CoreRoles.PAUSE, guardianAddress);
-        core.grantRole(CoreRoles.UNPAUSE, guardianAddress);
+        core.grantRole(CoreRoles.GUARDIAN, guardianAddress);
         // TODO: Determine what this role should be
         core.grantRole(CoreRoles.EXECUTOR_ROLE, address(0));
         core.grantRole(CoreRoles.PROPOSER_ROLE, timelockAddress);
@@ -206,6 +203,6 @@ contract Deploy is Config, VerboseDeployment, ContractRegistry {
         core.grantRole(CoreRoles.FARM_MANAGER, farmManagerAddress);
         core.grantRole(CoreRoles.ORACLE_MANAGER, oracleManagerAddress);
         core.grantRole(CoreRoles.FARM_SWAP_CALLER, multisigAddress);
-        core.grantRole(CoreRoles.MANUAL_REBALANCER, multisigAddress);
+        core.grantRole(CoreRoles.FARM_MANAGER_ADMIN, multisigAddress);
     }
 }

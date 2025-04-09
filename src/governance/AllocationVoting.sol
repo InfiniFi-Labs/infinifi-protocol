@@ -13,16 +13,6 @@ import {CoreControlled} from "@core/CoreControlled.sol";
 import {LockingController} from "@locking/LockingController.sol";
 import {LockedPositionToken} from "@tokens/LockedPositionToken.sol";
 
-/// @notice Allocation voting contract
-/// In this contract, locked users can vote for the farms where they want the protocol to allocate
-/// their assets. Liquid farm & Illiquid farm votes are treated separately: liquid votes are used
-/// to rebalance capital to the desired allocation (vote result) at every epoch, while illiquid votes
-/// are only deciding where funds are allocated on a given week (in an additive manner, there is no
-/// rebalancing between farms on the illiquid side).
-/// Votes on a given epoch are only applying on the next epoch, leaving users with a full epoch
-/// to cast their votes. Votes should be performed every week, or they will be considered outdated.
-/// This means that a farm with 0 votes on a given epoch will not persist its weight on the next
-/// epoch, its weight will become 0 on the next epoch.
 contract AllocationVoting is CoreControlled {
     using EpochLib for uint256;
     using FixedPointMathLib for uint256;
@@ -53,7 +43,7 @@ contract AllocationVoting is CoreControlled {
         uint32 epoch;
         // weight returned if the current epoch is exactly equal to `epoch`
         uint112 currentWeight;
-        // weight updated on votes, committed to the `currentWeight` when a vote is cast
+        // weight updated on votes, comitted to the `currentWeight` when a vote is cast
         // on an epoch that is later than the stored epoch.
         uint112 nextWeight;
     }
@@ -123,7 +113,7 @@ contract AllocationVoting is CoreControlled {
 
         // restrict transfer until the next epoch after voting
         address shareToken = LockingController(lockingController).shareToken(_unwindingEpochs);
-        LockedPositionToken(shareToken).restrictTransferUntilNextEpoch(_user);
+        LockedPositionToken(shareToken).restrictActionUntil(_user, block.timestamp.nextEpoch().epochToTimestamp());
 
         emit FarmVoteRegistered(block.timestamp, epoch, _user, _unwindingEpochs, _liquidVotes, _illiquidVotes);
     }
@@ -178,11 +168,7 @@ contract AllocationVoting is CoreControlled {
             if (data.epoch != _epoch) {
                 // roll over pending weight votes that are in "nextWeight" into "currentWeight"
                 // when a new epoch starts and a vote is cast
-                if (data.epoch == _epoch - 1) {
-                    data = FarmWeightData({epoch: _epoch, currentWeight: data.nextWeight, nextWeight: 0});
-                } else {
-                    data = FarmWeightData({epoch: _epoch, currentWeight: 0, nextWeight: 0});
-                }
+                data = FarmWeightData({epoch: _epoch, currentWeight: data.nextWeight, nextWeight: 0});
             }
             data.nextWeight += uint112(_votes[i].weight);
             farmWeightData[farm] = data;

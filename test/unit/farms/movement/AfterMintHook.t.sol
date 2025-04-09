@@ -81,19 +81,6 @@ contract AfterMintHookTest is BaseHookTest, AfterMintHook {
         assertEq(totalAssetsOf(address(0), 0), 110 ether, "Total liquid assets should be 10 ether after minting");
     }
 
-    /// @notice Test redeem when asset is not enabled
-    function testAfterMintAssetNotEnabled()
-        public
-        configureFarms(30 ether, 30 ether, 30 ether)
-        setWeights(100, 0, 0)
-        setAmount(20 ether)
-    {
-        controllerFarm.directDeposit(amount);
-        controllerFarm.setAsset(address(0xdead));
-        vm.expectRevert(abi.encodeWithSelector(AfterMintHook.AssetNotEnabled.selector, address(0xdead)));
-        controllerFarm.callMintHook(this, amount);
-    }
-
     function testAfterMintEvenSplit()
         public
         configureFarms(0 ether, 0 ether, 0 ether)

@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  # push:
+  pull_request:
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: Foundry project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Show Forge version
+        run: |
+          forge --version
+
+      - name: Run Forge fmt
+        run: |
+          forge fmt --check
+        id: fmt
+
+      - name: Run Forge build
+        run: |
+          forge build --sizes
+        id: build
+
+      - name: Run Forge unit tests
+        run: |
+          make test-unit
+        id: test
+
+      - name: Generate coverage report
+        if: github.event_name == 'pull_request'
+        run: |
+          make coverage
+
+      - name: Report code coverage
+        if: github.event_name == 'pull_request'
+        uses: kefasjw/lcov-pull-request-report@v1
+        with:
+          # Lcov file location. For example, coverage/lcov.info
+          lcov-file: lcov.info
+          # Github token required for getting list of changed files and posting comments
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Working directory
+          # Default: empty (repository root)
+          working-directory:
+          # Report comment title
+          # Default: empty
+          comment-title: Code Coverage Report
+          # All files minimum coverage in percentage. For example, 0, 50, 100
+          # Default: 0
+          all-files-minimum-coverage: 0
+          # Changed files minimum coverage in percentage. For example, 0, 50, 100
+          # Default: 0
+          changed-files-minimum-coverage: 0
+          # Artifact name of the generated html. Requires LCOV to be installed
+          # Default: empty (skip uploading artifact)
+          artifact-name:

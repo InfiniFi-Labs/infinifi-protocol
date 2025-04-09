@@ -25,7 +25,7 @@ contract FarmRegistry is CoreControlled {
     EnumerableSet.AddressSet private farms;
     mapping(uint256 _type => EnumerableSet.AddressSet _farms) private typeFarms;
     mapping(address _asset => EnumerableSet.AddressSet _farms) private assetFarms;
-    mapping(address _asset => mapping(uint256 _type => EnumerableSet.AddressSet _farms)) private assetTypeFarms;
+    mapping(address _asset => mapping(uint256 _type => EnumerableSet.AddressSet _farms)) private assetFarmTypes;
 
     constructor(address _core) CoreControlled(_core) {}
 
@@ -54,7 +54,7 @@ contract FarmRegistry is CoreControlled {
     }
 
     function getAssetTypeFarms(address _asset, uint256 _type) external view returns (address[] memory) {
-        return assetTypeFarms[_asset][_type].values();
+        return assetFarmTypes[_asset][_type].values();
     }
 
     function isFarm(address _farm) external view returns (bool) {
@@ -104,7 +104,7 @@ contract FarmRegistry is CoreControlled {
             require(farms.add(_list[i]), FarmAlreadyAdded(_list[i]));
             require(typeFarms[_type].add(_list[i]), FarmAlreadyAdded(_list[i]));
             require(assetFarms[farmAsset].add(_list[i]), FarmAlreadyAdded(_list[i]));
-            require(assetTypeFarms[farmAsset][_type].add(_list[i]), FarmAlreadyAdded(_list[i]));
+            require(assetFarmTypes[farmAsset][_type].add(_list[i]), FarmAlreadyAdded(_list[i]));
         }
     }
 
@@ -114,7 +114,7 @@ contract FarmRegistry is CoreControlled {
             require(farms.remove(_list[i]), FarmNotFound(_list[i]));
             require(typeFarms[_type].remove(_list[i]), FarmNotFound(_list[i]));
             require(assetFarms[farmAsset].remove(_list[i]), FarmNotFound(_list[i]));
-            require(assetTypeFarms[farmAsset][_type].remove(_list[i]), FarmNotFound(_list[i]));
+            require(assetFarmTypes[farmAsset][_type].remove(_list[i]), FarmNotFound(_list[i]));
         }
     }
 }

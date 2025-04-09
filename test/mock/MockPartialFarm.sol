@@ -18,10 +18,6 @@ contract MockPartialFarm {
         // noop
     }
 
-    function setAsset(address _newAsset) external {
-        assetToken = _newAsset;
-    }
-
     function directDeposit(uint256 _amount) external {
         assets += _amount;
     }

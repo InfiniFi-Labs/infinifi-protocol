@@ -16,6 +16,8 @@ import {LockingController} from "@locking/LockingController.sol";
 contract YieldSharing is CoreControlled {
     using FixedPointMathLib for uint256;
 
+    uint256 public constant MAX_PERFORMANCE_FEE = 0.2e18; // 20%
+
     error PerformanceFeeTooHigh(uint256 _percent);
     error PerformanceFeeRecipientIsZeroAddress(address _recipient);
     error TargetIlliquidRatioTooHigh(uint256 _ratio);
@@ -24,12 +26,6 @@ contract YieldSharing is CoreControlled {
     /// @param timestamp block timestamp of the accrual
     /// @param yield profit or loss in farms since last accrual
     event YieldAccrued(uint256 indexed timestamp, int256 yield);
-    event TargetIlliquidRatioUpdated(uint256 indexed timestamp, uint256 multiplier);
-    event SafetyBufferSizeUpdated(uint256 indexed timestamp, uint256 value);
-    event LiquidMultiplierUpdated(uint256 indexed timestamp, uint256 multiplier);
-    event PerformanceFeeSettingsUpdated(uint256 indexed timestamp, uint256 percentage, address recipient);
-
-    uint256 public constant MAX_PERFORMANCE_FEE = 0.2e18; // 20%
 
     /// @notice reference to farm accounting contract
     address public immutable accounting;
@@ -85,7 +81,6 @@ contract YieldSharing is CoreControlled {
     /// @param _safetyBufferSize the new safety buffer size
     function setSafetyBufferSize(uint256 _safetyBufferSize) external onlyCoreRole(CoreRoles.GOVERNOR) {
         safetyBufferSize = _safetyBufferSize;
-        emit SafetyBufferSizeUpdated(block.timestamp, _safetyBufferSize);
     }
 
     /// @notice set the performance fee and recipient
@@ -100,20 +95,17 @@ contract YieldSharing is CoreControlled {
 
         performanceFee = _percent;
         performanceFeeRecipient = _recipient;
-        emit PerformanceFeeSettingsUpdated(block.timestamp, _percent, _recipient);
     }
 
     /// @notice set the liquid return multiplier
     function setLiquidReturnMultiplier(uint256 _multiplier) external onlyCoreRole(CoreRoles.GOVERNOR) {
         liquidReturnMultiplier = _multiplier;
-        emit LiquidMultiplierUpdated(block.timestamp, _multiplier);
     }
 
     /// @notice set the target illiquid ratio
     function setTargetIlliquidRatio(uint256 _ratio) external onlyCoreRole(CoreRoles.GOVERNOR) {
         require(_ratio <= FixedPointMathLib.WAD, TargetIlliquidRatioTooHigh(_ratio));
         targetIlliquidRatio = _ratio;
-        emit TargetIlliquidRatioUpdated(block.timestamp, _ratio);
     }
 
     /// @notice returns the yield earned by the protocol since the last accrue() call.

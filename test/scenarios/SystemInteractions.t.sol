@@ -5,6 +5,7 @@ import {Fixture} from "@test/Fixture.t.sol";
 import {EpochLib} from "@libraries/EpochLib.sol";
 import {MintController} from "@funding/MintController.sol";
 import {RedeemController} from "@funding/RedeemController.sol";
+import {ActionRestriction} from "@core/ActionRestriction.sol";
 
 contract SystemInteractionsUnitTest is Fixture {
     using EpochLib for uint256;
@@ -76,7 +77,7 @@ contract SystemInteractionsUnitTest is Fixture {
 
         // move funds to redeemController
         vm.prank(msig);
-        manualRebalancer.singleMovement(address(mintController), address(redeemController), 100e6);
+        farmRebalancer.singleMovement(address(mintController), address(redeemController), 100e6);
 
         // redeem
         vm.startPrank(alice);
@@ -126,6 +127,17 @@ contract SystemInteractionsUnitTest is Fixture {
         assertEq(iusd.totalSupply(), 100e18, "iusd totalSupply should be 100e18");
         assertEq(siusd.totalSupply(), 100e18, "siusd totalSupply should be 100e18");
         assertEq(siusd.balanceOf(alice), 100e18, "siusd balance of alice should be 100e18");
+
+        // check alice cannot transfer her siusd yet
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ActionRestriction.ActionRestricted.selector,
+                alice,
+                block.timestamp + mintController.restrictionDuration()
+            )
+        );
+        siusd.transfer(bob, 100e18);
+        vm.stopPrank();
 
         // check hooks
         assertEq(afterMintHookCalled, true);

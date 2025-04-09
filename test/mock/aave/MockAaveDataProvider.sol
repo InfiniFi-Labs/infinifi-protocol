@@ -28,14 +28,4 @@ contract MockAaveDataProvider is IAaveDataProvider {
     function setSupplyCap(uint256 _supplyCap) external {
         supplyCap = _supplyCap;
     }
-
-    function getReserveData(address asset)
-        external
-        view
-        returns (IAaveDataProvider.AaveDataProviderReserveData memory data)
-    {}
-
-    function getPaused(address /* asset*/ ) external pure returns (bool) {
-        return false;
-    }
 }

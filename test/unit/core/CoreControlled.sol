@@ -25,8 +25,7 @@ contract CoreControlledUnitTest is InfiniFiTest {
     function setUp() public {
         core = new InfiniFiCore();
         core.grantRole(CoreRoles.GOVERNOR, governor);
-        core.grantRole(CoreRoles.PAUSE, guardian);
-        core.grantRole(CoreRoles.UNPAUSE, guardian);
+        core.grantRole(CoreRoles.GUARDIAN, guardian);
         core.renounceRole(CoreRoles.GOVERNOR, address(this));
 
         coreControlled = new MockCoreControlled(address(core));

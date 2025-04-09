@@ -65,8 +65,8 @@ contract InfiniFiCoreUnitTest is InfiniFiTest {
         vm.prank(governor);
         core.createRole(keccak256("NEW_ROLE"), CoreRoles.GOVERNOR);
         vm.prank(governor);
-        core.setRoleAdmin(keccak256("NEW_ROLE"), CoreRoles.PAUSE);
-        assertEq(core.getRoleAdmin(keccak256("NEW_ROLE")), CoreRoles.PAUSE, "Error: role admin should be PAUSE");
+        core.setRoleAdmin(keccak256("NEW_ROLE"), CoreRoles.GUARDIAN);
+        assertEq(core.getRoleAdmin(keccak256("NEW_ROLE")), CoreRoles.GUARDIAN, "Error: role admin should be guardian");
     }
 
     function testGrantRolesRevertsIfLengthMismatch() public {
@@ -78,7 +78,7 @@ contract InfiniFiCoreUnitTest is InfiniFiTest {
 
     function testGrantRolesRevertsIfNotRoleAdmin() public {
         bytes32[] memory roles = new bytes32[](1);
-        roles[0] = keccak256("PAUSE");
+        roles[0] = keccak256("GUARDIAN");
         address[] memory accounts = new address[](1);
         accounts[0] = makeAddr("account");
         vm.prank(notGovernor);
@@ -92,15 +92,15 @@ contract InfiniFiCoreUnitTest is InfiniFiTest {
 
     function testGrantRoles() public {
         bytes32[] memory roles = new bytes32[](2);
-        roles[0] = keccak256("PAUSE");
-        roles[1] = keccak256("PAUSE");
+        roles[0] = keccak256("GUARDIAN");
+        roles[1] = keccak256("GUARDIAN");
         address[] memory accounts = new address[](2);
         accounts[0] = makeAddr("account");
         accounts[1] = makeAddr("account2");
         vm.prank(governor);
         core.grantRoles(roles, accounts);
 
-        assertEq(core.hasRole(keccak256("PAUSE"), accounts[0]), true, "Error: account should have PAUSE role");
-        assertEq(core.hasRole(keccak256("PAUSE"), accounts[1]), true, "Error: account2 should have PAUSE role");
+        assertEq(core.hasRole(keccak256("GUARDIAN"), accounts[0]), true, "Error: account should have guardian role");
+        assertEq(core.hasRole(keccak256("GUARDIAN"), accounts[1]), true, "Error: account2 should have guardian role");
     }
 }

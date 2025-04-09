@@ -8,7 +8,6 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Fixture} from "@test/Fixture.t.sol";
 import {MockERC20} from "@test/mock/MockERC20.sol";
 import {MockISYToken} from "@test/mock/pendle/MockISYToken.sol";
-import {MockISYTokenNoCap} from "@test/mock/pendle/MockISYTokenNoCap.sol";
 import {MockPendleMarket} from "@test/mock/pendle/MockPendleMarket.sol";
 import {MockPendleOracle} from "@test/mock/pendle/MockPendleOracle.sol";
 import {FixedPriceOracle} from "@finance/oracles/FixedPriceOracle.sol";
@@ -23,15 +22,6 @@ contract PendleV2FarmUnitTest is Fixture {
     MockERC20 ptToken = new MockERC20("PT_TOKEN", "PTT");
     address ytToken = makeAddr("YT_TOKEN");
     PendleV2Farm farm;
-
-    MockPendleMarket pendleMarketNoCap;
-    MockPendleOracle pendleOracleNoCap;
-    FixedPriceOracle assetToPtUnderlyingOracleNoCap;
-    MockISYTokenNoCap syTokenNoCap = new MockISYTokenNoCap("SY_TOKEN", "SYT");
-    MockERC20 ptTokenNoCap = new MockERC20("PT_TOKEN", "PTT");
-    address ytTokenNoCap = makeAddr("YT_TOKEN");
-    PendleV2Farm farmNoCap;
-
     MockSwapRouter router = new MockSwapRouter();
 
     function setUp() public override {
@@ -54,27 +44,6 @@ contract PendleV2FarmUnitTest is Fixture {
             address(pendleOracle),
             address(assetToPtUnderlyingOracle)
         );
-
-        pendleMarketNoCap = new MockPendleMarket();
-        pendleOracleNoCap = new MockPendleOracle();
-        assetToPtUnderlyingOracleNoCap = new FixedPriceOracle(address(core), 1e6); // 1e18 USDE ~= 1e6 USDC
-        pendleMarketNoCap.mockSetExpiry(block.timestamp + 30 days);
-        pendleMarketNoCap.mockSetTokens(address(syTokenNoCap), address(ptTokenNoCap), ytTokenNoCap);
-        pendleOracleNoCap.mockSetRate(0.8e18);
-
-        farmNoCap = new PendleV2Farm(
-            address(core),
-            address(usdc),
-            address(pendleMarketNoCap),
-            address(pendleOracleNoCap),
-            address(assetToPtUnderlyingOracleNoCap)
-        );
-
-        vm.prank(governorAddress);
-        farm.setPendleRouter(address(router));
-
-        vm.prank(governorAddress);
-        farmNoCap.setPendleRouter(address(router));
     }
 
     function scenarioDepositAssetsAndWrapBeforeMaturity(uint256 assetsIn, uint256 targetYield) public {
@@ -92,7 +61,7 @@ contract PendleV2FarmUnitTest is Fixture {
         // wrap assets
         pendleOracle.mockSetRate(assetInNormalizedTo18 * 1e18 / ptOut);
         vm.prank(msig);
-        farm.wrapAssetToPt(assetsIn, routerCalldata);
+        farm.wrapAssetToPt(assetsIn, address(router), routerCalldata);
     }
 
     function scenarioUnwrapPTAfterMaturity() public {
@@ -105,7 +74,7 @@ contract PendleV2FarmUnitTest is Fixture {
         router.mockPrepareSwap(address(ptToken), address(usdc), 1250e18, 1250e6);
         bytes memory routerCalldata = abi.encodeWithSelector(MockSwapRouter.swap.selector);
         vm.prank(msig);
-        farm.unwrapPtToAsset(1250e18, routerCalldata);
+        farm.unwrapPtToAsset(1250e18, address(router), routerCalldata);
     }
 
     function testInitialState() public view {
@@ -131,13 +100,6 @@ contract PendleV2FarmUnitTest is Fixture {
         assertEq(farm.maxDeposit(), 1_000e6, "Max deposit amount is not correct!");
     }
 
-    function testPendleV2NoCapMaxDeposit() public {
-        // by default, the farm cap is the cap of the SY token
-        assertEq(
-            farmNoCap.maxDeposit(), type(uint256).max, "Max deposit amount of Farm with no cap should be max uint256!"
-        );
-    }
-
     function testCannotCallDepositAfterMaturity() public {
         vm.warp(pendleMarket.expiry() + 1);
         vm.expectRevert(abi.encodeWithSelector(PendleV2Farm.PTAlreadyMatured.selector, pendleMarket.expiry()));
@@ -157,12 +119,10 @@ contract PendleV2FarmUnitTest is Fixture {
 
         // yield interpolation for a 30 days maturity with 20% target yield means
         uint256 targetYieldWithSlippage = 1250e6 * 0.995e18 / 1e18;
-        uint256 yieldPerSecWithSlippage = (targetYieldWithSlippage - 1000e6) * 1e18 / uint256(30 days);
+        uint256 yieldPerSecWithSlippage = (targetYieldWithSlippage - 1000e6) / uint256(30 days);
         // warp 1000 seconds
         vm.warp(block.timestamp + 1000);
-        assertEq(
-            farm.assets(), 1000e6 + yieldPerSecWithSlippage * 1000 / 1e18, "assets should be 1000e6 + interpolatedYield"
-        );
+        assertEq(farm.assets(), 1000e6 + yieldPerSecWithSlippage * 1000, "assets should be 1000e6 + interpolatedYield");
 
         // warp to maturity - 1, should return 99.5% of 1250 USDC
         vm.warp(pendleMarket.expiry() - 1);
@@ -175,13 +135,11 @@ contract PendleV2FarmUnitTest is Fixture {
         scenarioDepositAssetsAndWrapBeforeMaturity(1000e6, 0.25e18);
         assertEq(farm.assets(), 1000e6, "assets should be 1000e6 just after wrapping 1000 USDC");
         uint256 targetYieldWithSlippage = 1250e6 * 0.995e18 / 1e18;
-        uint256 yieldPerSecWithSlippage = (targetYieldWithSlippage - 1000e6) * 1e18 / uint256(30 days);
+        uint256 yieldPerSecWithSlippage = (targetYieldWithSlippage - 1000e6) / uint256(30 days);
         // warp 15 days, exactly half of the maturity
         vm.warp(block.timestamp + 15 days);
         assertEq(
-            farm.assets(),
-            1000e6 + yieldPerSecWithSlippage * 15 days / 1e18,
-            "assets should be 1000e6 + interpolatedYield"
+            farm.assets(), 1000e6 + yieldPerSecWithSlippage * 15 days, "assets should be 1000e6 + interpolatedYield"
         );
         uint256 alreadyInterpolatedYield = farm.assets() - 1000e6;
 
@@ -213,14 +171,14 @@ contract PendleV2FarmUnitTest is Fixture {
     function testWrapAssetToPtRevertIfNotFarmSwapCaller() public {
         vm.expectRevert("UNAUTHORIZED");
         vm.prank(makeAddr("NOT_FARM_SWAP_CALLER"));
-        farm.wrapAssetToPt(1000e6, "0x");
+        farm.wrapAssetToPt(1000e6, address(router), "0x");
     }
 
     function testWrapAssetToPtRevertIfAfterMaturity() public {
         vm.warp(pendleMarket.expiry() + 1);
         vm.expectRevert(abi.encodeWithSelector(PendleV2Farm.PTAlreadyMatured.selector, pendleMarket.expiry()));
         vm.prank(msig);
-        farm.wrapAssetToPt(1000e6, "0x");
+        farm.wrapAssetToPt(1000e6, address(router), "0x");
     }
 
     function testWrapAssetToPtRevertIfSwapFails() public {
@@ -229,7 +187,7 @@ contract PendleV2FarmUnitTest is Fixture {
 
         vm.expectRevert(expectedError);
         vm.prank(msig);
-        farm.wrapAssetToPt(1000e6, abi.encodeWithSelector(MockSwapRouter.swapFail.selector));
+        farm.wrapAssetToPt(1000e6, address(router), abi.encodeWithSelector(MockSwapRouter.swapFail.selector));
     }
 
     function testWrapAssetToPtRevertIfTooMuchSlippage() public {
@@ -247,7 +205,7 @@ contract PendleV2FarmUnitTest is Fixture {
         // wrap assets
         vm.expectRevert(abi.encodeWithSelector(PendleV2Farm.SlippageTooHigh.selector, minAssets, assetsOut));
         vm.prank(msig);
-        farm.wrapAssetToPt(assetsIn, routerCalldata);
+        farm.wrapAssetToPt(assetsIn, address(router), routerCalldata);
     }
 
     function testWrapAssetToPt(uint256 assetsIn, uint256 targetYield) public {
@@ -263,14 +221,14 @@ contract PendleV2FarmUnitTest is Fixture {
     function testUnwrapPtToAssetShouldRevertIfNotFarmSwapCaller() public {
         vm.expectRevert("UNAUTHORIZED");
         vm.prank(makeAddr("NOT_FARM_SWAP_CALLER"));
-        farm.unwrapPtToAsset(1000e18, "0x");
+        farm.unwrapPtToAsset(1000e18, address(router), "0x");
     }
 
     function testUnwrapPtToAssetShouldRevertIfBeforeMaturity() public {
         vm.warp(pendleMarket.expiry() - 1);
         vm.expectRevert(abi.encodeWithSelector(PendleV2Farm.PTNotMatured.selector, pendleMarket.expiry()));
         vm.prank(msig);
-        farm.unwrapPtToAsset(1000e18, "0x");
+        farm.unwrapPtToAsset(1000e18, address(router), "0x");
     }
 
     function testUnwrapPtToAssetShouldRevertIfSwapFails() public {
@@ -281,7 +239,7 @@ contract PendleV2FarmUnitTest is Fixture {
         bytes memory expectedError = abi.encodeWithSelector(PendleV2Farm.SwapFailed.selector, revertData);
         vm.expectRevert(expectedError);
         vm.prank(msig);
-        farm.unwrapPtToAsset(1250e18, abi.encodeWithSelector(MockSwapRouter.swapFail.selector));
+        farm.unwrapPtToAsset(1250e18, address(router), abi.encodeWithSelector(MockSwapRouter.swapFail.selector));
     }
 
     function testUnwrapPtToAssetShouldRevertIfSlippageTooHigh() public {
@@ -301,7 +259,7 @@ contract PendleV2FarmUnitTest is Fixture {
 
         vm.expectRevert(abi.encodeWithSelector(PendleV2Farm.SlippageTooHigh.selector, minAssets, 950e6));
         vm.prank(msig);
-        farm.unwrapPtToAsset(1250e18, abi.encodeWithSelector(MockSwapRouter.swap.selector));
+        farm.unwrapPtToAsset(1250e18, address(router), abi.encodeWithSelector(MockSwapRouter.swap.selector));
     }
 
     function testUnwrapPtToAsset() public {
@@ -333,18 +291,6 @@ contract PendleV2FarmUnitTest is Fixture {
         // some USDC are wrapped, it should only be the assets held that are counted
         usdc.mint(address(farm), 222e6);
         assertEq(farm.liquidity(), 222e6);
-    }
-
-    function testSetMaxSlippage() public {
-        assertEq(farm.maxSlippage(), 0.995e18, "Error: SwapFarm's maxSlippage should be 0.995e18");
-
-        vm.expectRevert("UNAUTHORIZED");
-        farm.setMaxSlippage(0.98e18);
-
-        vm.prank(governorAddress);
-        farm.setMaxSlippage(0.98e18);
-
-        assertEq(farm.maxSlippage(), 0.98e18, "Error: SwapFarm's maxSlippage should be 0.98e18");
     }
 
     // GRAPH TESTS

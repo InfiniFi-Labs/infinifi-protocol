@@ -5,6 +5,7 @@ import {console} from "@forge-std/console.sol";
 import {Fixture} from "@test/Fixture.t.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IMintController} from "@interfaces/IMintController.sol";
+import {ActionRestriction} from "@core/ActionRestriction.sol";
 import {IRedeemController} from "@interfaces/IRedeemController.sol";
 
 contract MintRedeemControllerUnitTest is Fixture {
@@ -40,10 +41,12 @@ contract MintRedeemControllerUnitTest is Fixture {
         gateway.mint(alice, 1000e6);
         vm.stopPrank();
 
-        // deploy 500 (half) of USDC to a farm
-        vm.prank(farmManagerAddress);
-        mintController.withdraw(500e6, address(farm1));
+        vm.warp(block.timestamp + 12);
 
+        // burn USDC from the contract, so that we can test the redeem with not enough liquidity
+        // in reality it should be because some USDC would have been alocated to a yield bearing farm
+        // here we just burn USDC from the contract
+        usdc.mockBurn(address(mintController), 500e6);
         // now only 500 USDC are left in the contract while alice still has 1000 iUSD
         assertEq(usdc.balanceOf(address(mintController)), 500e6);
     }
@@ -63,6 +66,7 @@ contract MintRedeemControllerUnitTest is Fixture {
         assertEq(
             mintController.accounting(), address(accounting), "Error: mintController.accounting() should be accounting"
         );
+        assertEq(mintController.restrictionDuration(), 1, "Error: mintController.restrictionDuration() should be 1");
         assertEq(mintController.minMintAmount(), 1, "Error: mintController.minMintAmount() should be 1");
         assertEq(
             redeemController.receiptToken(), address(iusd), "Error: redeemController.receiptToken() should be iUSD"
@@ -150,6 +154,27 @@ contract MintRedeemControllerUnitTest is Fixture {
         vm.prank(governorAddress);
         vm.expectRevert(abi.encodeWithSelector(IMintController.MintAmountTooLow.selector, 0, 1));
         mintController.setMinMintAmount(0);
+    }
+
+    function testSetRestrictionDurationShouldErrorIfNotGovernor() public {
+        vm.expectRevert("UNAUTHORIZED");
+        mintController.setRestrictionDuration(100);
+    }
+
+    function testSetRestrictionDurationCanBeSetByGovernor(uint256 _duration) public {
+        _duration = bound(_duration, 1, 100);
+        assertEq(
+            mintController.restrictionDuration(),
+            1,
+            "Error: mintController.restrictionDuration() should be 1 at default"
+        );
+        vm.prank(governorAddress);
+        mintController.setRestrictionDuration(_duration);
+        assertEq(
+            mintController.restrictionDuration(),
+            _duration,
+            "Error: mintController.restrictionDuration() should be set to _duration after calling setRestrictionDuration()"
+        );
     }
 
     function testAssetToReceipt(uint256 _amountAsset, uint256 _iusdPrice) public {
@@ -396,7 +421,8 @@ contract MintRedeemControllerUnitTest is Fixture {
         vm.prank(guardianAddress);
         redeemController.pause();
 
-        _mintBackedReceiptTokens(address(this), 100e18);
+        vm.prank(address(mintController));
+        iusd.mint(address(this), 100e18);
         iusd.approve(address(gateway), 100e18);
 
         vm.expectRevert(abi.encodeWithSelector(Pausable.EnforcedPause.selector));
@@ -408,7 +434,8 @@ contract MintRedeemControllerUnitTest is Fixture {
         vm.prank(governorAddress);
         redeemController.setMinRedemptionAmount(_redeemAmount + 1);
 
-        _mintBackedReceiptTokens(address(this), _redeemAmount);
+        vm.prank(address(mintController));
+        iusd.mint(address(this), _redeemAmount);
         iusd.approve(address(gateway), _redeemAmount);
 
         vm.expectRevert(
@@ -418,6 +445,8 @@ contract MintRedeemControllerUnitTest is Fixture {
     }
 
     /// @notice mint 1000 iUSD and then redeem 500 iUSD
+    /// THIS TEST SHOULD FAIL ONCE WE IMPLEMENT MINT + REDEEM RESTRICTION IN THE SAME BLOCK
+    /// to fix it then: just warp a bit in the future after the mint, so that the redeem can be processed
     function testRedeemWithEnoughLiquidityShouldSendDirectly(bool _setupBeforeRedeemHook) public {
         usdc.mint(address(alice), 1000e6);
 
@@ -430,6 +459,9 @@ contract MintRedeemControllerUnitTest is Fixture {
         usdc.approve(address(gateway), 1000e6);
         gateway.mint(alice, 1000e6);
         vm.stopPrank();
+
+        // skip for next block given restriction on mint and redemption on same block
+        vm.warp(block.timestamp + 1);
 
         // move funds from mintController to redeemController
         vm.startPrank(farmManagerAddress);
@@ -569,5 +601,18 @@ contract MintRedeemControllerUnitTest is Fixture {
             2000e6,
             "Error: address(this) does not have the correct amount of USDC after withdrawing"
         );
+    }
+
+    function testMintAndRedeemCannotBeDoneInSameBlock() public {
+        deal(address(usdc), address(this), 1000e6);
+        vm.prank(governorAddress);
+        mintController.setRestrictionDuration(1 days);
+        usdc.approve(address(gateway), 1000e6);
+        uint256 receiptAmount = gateway.mint(address(this), 1000e6);
+        iusd.approve(address(gateway), receiptAmount);
+        vm.expectRevert(
+            abi.encodeWithSelector(ActionRestriction.ActionRestricted.selector, address(this), block.timestamp + 1 days)
+        );
+        gateway.redeem(address(this), receiptAmount);
     }
 }

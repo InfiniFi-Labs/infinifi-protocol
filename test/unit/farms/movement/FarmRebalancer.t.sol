@@ -6,9 +6,9 @@ import {Fixture} from "@test/Fixture.t.sol";
 import {MockFarm} from "@test/mock/MockFarm.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {FarmTypes} from "@libraries/FarmTypes.sol";
-import {ManualRebalancer} from "@integrations/farms/movement/ManualRebalancer.sol";
+import {FarmRebalancer} from "@integrations/farms/movement/FarmRebalancer.sol";
 
-contract ManualRebalancerUnitTest is Fixture {
+contract FarmRebalancerUnitTest is Fixture {
     function setUp() public override {
         super.setUp();
 
@@ -18,17 +18,15 @@ contract ManualRebalancerUnitTest is Fixture {
     function testInitialState() public view {
         assertEq(farm1.assets(), 100e6, "Error: Farm1's assets does not reflect the correct amount for initial state");
         assertEq(farm2.assets(), 0, "Error: Farm2's assets does not reflect the correct amount for initial state");
-
-        assertEq(manualRebalancer.cooldown(), 4 hours, "Error: manualRebalancer.cooldown() incorrect");
     }
 
     function testSingleMovement() public {
         // check access control
         vm.expectRevert("UNAUTHORIZED");
-        manualRebalancer.singleMovement(address(farm1), address(farm2), 30e6);
+        farmRebalancer.singleMovement(address(farm1), address(farm2), 30e6);
 
         vm.prank(msig);
-        manualRebalancer.singleMovement(address(farm1), address(farm2), 30e6);
+        farmRebalancer.singleMovement(address(farm1), address(farm2), 30e6);
 
         assertEq(
             farm1.assets(), 70e6, "Error: Farm1's assets does not reflect the correct amount after single movement"
@@ -41,7 +39,7 @@ contract ManualRebalancerUnitTest is Fixture {
 
         // move max liquidity
         vm.prank(msig);
-        manualRebalancer.singleMovement(address(farm1), address(farm2), 0);
+        farmRebalancer.singleMovement(address(farm1), address(farm2), 0);
 
         assertEq(
             farm1.assets(), 35e6, "Error: Farm1's assets does not reflect the correct amount after single movement"
@@ -52,7 +50,7 @@ contract ManualRebalancerUnitTest is Fixture {
 
         // move max assets
         vm.prank(msig);
-        manualRebalancer.singleMovement(address(farm1), address(farm2), type(uint256).max);
+        farmRebalancer.singleMovement(address(farm1), address(farm2), type(uint256).max);
 
         assertEq(farm1.assets(), 0, "Error: Farm1's assets does not reflect the correct amount after single movement");
         assertEq(
@@ -66,8 +64,8 @@ contract ManualRebalancerUnitTest is Fixture {
         uint256[] memory amounts = new uint256[](0);
 
         vm.prank(msig);
-        vm.expectRevert(abi.encodeWithSelector(ManualRebalancer.EmptyInput.selector));
-        manualRebalancer.batchMovement(fromFarms, toFarms, amounts);
+        vm.expectRevert(abi.encodeWithSelector(FarmRebalancer.EmptyInput.selector));
+        farmRebalancer.batchMovement(fromFarms, toFarms, amounts);
     }
 
     function testBatchMovementsShouldRevertIfMismatchLengths() public {
@@ -76,24 +74,24 @@ contract ManualRebalancerUnitTest is Fixture {
         uint256[] memory amounts = new uint256[](1);
 
         vm.prank(msig);
-        vm.expectRevert(abi.encodeWithSelector(ManualRebalancer.InvalidInput.selector));
-        manualRebalancer.batchMovement(fromFarms, toFarms, amounts);
+        vm.expectRevert(abi.encodeWithSelector(FarmRebalancer.InvalidInput.selector));
+        farmRebalancer.batchMovement(fromFarms, toFarms, amounts);
 
         fromFarms = new address[](2);
         toFarms = new address[](1);
         amounts = new uint256[](2);
 
         vm.prank(msig);
-        vm.expectRevert(abi.encodeWithSelector(ManualRebalancer.InvalidInput.selector));
-        manualRebalancer.batchMovement(fromFarms, toFarms, amounts);
+        vm.expectRevert(abi.encodeWithSelector(FarmRebalancer.InvalidInput.selector));
+        farmRebalancer.batchMovement(fromFarms, toFarms, amounts);
 
         fromFarms = new address[](2);
         toFarms = new address[](2);
         amounts = new uint256[](1);
 
         vm.prank(msig);
-        vm.expectRevert(abi.encodeWithSelector(ManualRebalancer.InvalidInput.selector));
-        manualRebalancer.batchMovement(fromFarms, toFarms, amounts);
+        vm.expectRevert(abi.encodeWithSelector(FarmRebalancer.InvalidInput.selector));
+        farmRebalancer.batchMovement(fromFarms, toFarms, amounts);
     }
 
     function testBatchMovements() public {
@@ -115,7 +113,7 @@ contract ManualRebalancerUnitTest is Fixture {
         uint256 illiquidFarm1AssetsBefore = illiquidFarm1.assets();
 
         vm.prank(msig);
-        manualRebalancer.batchMovement(fromFarms, toFarms, amounts);
+        farmRebalancer.batchMovement(fromFarms, toFarms, amounts);
 
         assertEq(farm1.assets(), farm1AssetsBefore - 40e6);
         assertEq(farm2.assets(), farm2AssetsBefore + 10e6);
@@ -124,12 +122,12 @@ contract ManualRebalancerUnitTest is Fixture {
 
     function testFarmWhitelist() public {
         vm.prank(msig);
-        vm.expectRevert(abi.encodeWithSelector(ManualRebalancer.InvalidFarm.selector, address(this)));
-        manualRebalancer.singleMovement(address(farm1), address(this), 123);
+        vm.expectRevert(abi.encodeWithSelector(FarmRebalancer.InvalidFarm.selector, address(this)));
+        farmRebalancer.singleMovement(address(farm1), address(this), 123);
 
         vm.prank(msig);
-        vm.expectRevert(abi.encodeWithSelector(ManualRebalancer.InvalidFarm.selector, address(this)));
-        manualRebalancer.singleMovement(address(this), address(farm2), 456);
+        vm.expectRevert(abi.encodeWithSelector(FarmRebalancer.InvalidFarm.selector, address(this)));
+        farmRebalancer.singleMovement(address(this), address(farm2), 456);
     }
 
     function testAssetCompatibility() public {
@@ -146,67 +144,30 @@ contract ManualRebalancerUnitTest is Fixture {
         vm.stopPrank();
 
         vm.prank(msig);
-        vm.expectRevert(abi.encodeWithSelector(ManualRebalancer.IncompatibleAssets.selector));
-        manualRebalancer.singleMovement(address(farm1), address(farm3), 42);
+        vm.expectRevert(abi.encodeWithSelector(FarmRebalancer.IncompatibleAssets.selector));
+        farmRebalancer.singleMovement(address(farm1), address(farm3), 42);
     }
 
     function testDeactivate() public {
         vm.prank(governorAddress);
-        core.revokeRole(CoreRoles.FARM_MANAGER, address(manualRebalancer));
+        core.revokeRole(CoreRoles.FARM_MANAGER, address(farmRebalancer));
 
         vm.prank(msig);
         vm.expectRevert("UNAUTHORIZED");
-        manualRebalancer.singleMovement(address(farm1), address(farm2), 42);
+        farmRebalancer.singleMovement(address(farm1), address(farm2), 42);
     }
 
     function testPauseUnpause() public {
         vm.prank(guardianAddress);
-        manualRebalancer.pause();
+        farmRebalancer.pause();
 
         vm.prank(msig);
         vm.expectRevert(abi.encodeWithSelector(Pausable.EnforcedPause.selector));
-        manualRebalancer.singleMovement(address(farm1), address(farm2), 50e6);
+        farmRebalancer.singleMovement(address(farm1), address(farm2), 50e6);
 
         vm.prank(guardianAddress);
-        manualRebalancer.unpause();
+        farmRebalancer.unpause();
 
         testSingleMovement();
-    }
-
-    function testBatchMovementsWithCooldown() public {
-        address[] memory fromFarms = new address[](2);
-        address[] memory toFarms = new address[](2);
-        uint256[] memory amounts = new uint256[](2);
-        // first movement: farm1 -> illiquidFarm1 for 30e6
-        fromFarms[0] = address(farm1);
-        toFarms[0] = address(illiquidFarm1);
-        amounts[0] = 30e6;
-
-        // second movement: farm1 -> farm2 for 10e6
-        fromFarms[1] = address(farm1);
-        toFarms[1] = address(farm2);
-        amounts[1] = 10e6;
-
-        uint256 farm1AssetsBefore = farm1.assets();
-        uint256 farm2AssetsBefore = farm2.assets();
-        uint256 illiquidFarm1AssetsBefore = illiquidFarm1.assets();
-
-        vm.prank(keeper);
-        manualRebalancer.batchMovementWithCooldown(fromFarms, toFarms, amounts);
-
-        assertEq(farm1.assets(), farm1AssetsBefore - 40e6);
-        assertEq(farm2.assets(), farm2AssetsBefore + 10e6);
-        assertEq(illiquidFarm1.assets(), illiquidFarm1AssetsBefore + 30e6);
-
-        // test cooldown
-        vm.expectRevert(abi.encodeWithSelector(ManualRebalancer.CooldownNotElapsed.selector));
-        vm.prank(keeper);
-        manualRebalancer.batchMovementWithCooldown(fromFarms, toFarms, amounts);
-    }
-
-    function testSetCooldown() public {
-        vm.prank(governorAddress);
-        manualRebalancer.setCooldown(1 days);
-        assertEq(manualRebalancer.cooldown(), 1 days, "Error: manualRebalancer.cooldown() not set");
     }
 }

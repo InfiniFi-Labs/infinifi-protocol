@@ -23,6 +23,11 @@ contract MintController is Farm, IMintController {
     /// @notice reference to the Accounting contract
     address public immutable accounting;
 
+    /// @notice farm receiving the funds after minting
+
+    /// @notice transfer/redemption restriction duration after minting
+    uint256 public restrictionDuration = 1; // default to 1 second
+
     /// @notice minimum mint amount
     /// @dev can be set to a different number by GOVERNOR role
     uint256 public minMintAmount = 1;
@@ -41,13 +46,16 @@ contract MintController is Farm, IMintController {
     function setMinMintAmount(uint256 _minMintAmount) external onlyCoreRole(CoreRoles.GOVERNOR) {
         require(_minMintAmount > 0, MintAmountTooLow(_minMintAmount, 1));
         minMintAmount = _minMintAmount;
-        emit MinMintAmountUpdated(block.timestamp, _minMintAmount);
     }
 
     /// @notice sets the afterMintHook
     function setAfterMintHook(address _afterMintHook) external onlyCoreRole(CoreRoles.GOVERNOR) {
         afterMintHook = _afterMintHook;
-        emit AfterMintHookChanged(block.timestamp, _afterMintHook);
+    }
+
+    /// @notice sets the action(transfer/redemption) restriction duration
+    function setRestrictionDuration(uint256 _duration) external onlyCoreRole(CoreRoles.GOVERNOR) {
+        restrictionDuration = _duration;
     }
 
     /// @notice calculate the amount of receiptToken() out for a given `amountIn` of assetToken()
@@ -65,7 +73,7 @@ contract MintController is Farm, IMintController {
     }
 
     /// @notice introduce new receiptTokens into circulation in exchange of assetTokens
-    function mint(address _to, uint256 _assetAmountIn)
+    function mint(address _to, uint256 _assetAmountIn, bool restrict)
         external
         whenNotPaused
         onlyCoreRole(CoreRoles.ENTRY_POINT)
@@ -84,6 +92,11 @@ contract MintController is Farm, IMintController {
         address _afterMintHook = afterMintHook;
         if (_afterMintHook != address(0)) {
             IAfterMintHook(_afterMintHook).afterMint(_to, _assetAmountIn, receiptAmountOut);
+        }
+
+        // restrict actions if needed
+        if (restrict) {
+            ReceiptToken(receiptToken).restrictActionUntil(_to, block.timestamp + restrictionDuration);
         }
 
         emit Mint(block.timestamp, _to, assetToken, _assetAmountIn, receiptAmountOut);

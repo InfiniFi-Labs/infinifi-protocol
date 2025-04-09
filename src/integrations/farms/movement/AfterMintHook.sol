@@ -7,7 +7,6 @@ import {IFarm} from "@interfaces/IFarm.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {FarmTypes} from "@libraries/FarmTypes.sol";
 import {Accounting} from "@finance/Accounting.sol";
-import {FarmRegistry} from "@integrations/FarmRegistry.sol";
 import {CoreControlled} from "@core/CoreControlled.sol";
 import {AllocationVoting} from "@governance/AllocationVoting.sol";
 import {IAfterMintHook} from "@interfaces/IMintController.sol";
@@ -16,7 +15,6 @@ contract AfterMintHook is IAfterMintHook, CoreControlled {
     using FixedPointMathLib for uint256;
 
     error NoFarmsFound();
-    error AssetNotEnabled(address _asset);
 
     address public accounting;
     address public allocationVoting;
@@ -27,13 +25,7 @@ contract AfterMintHook is IAfterMintHook, CoreControlled {
     }
 
     function afterMint(address, uint256 _assetsIn, uint256) public onlyCoreRole(CoreRoles.RECEIPT_TOKEN_MINTER) {
-        // if the hook is paused, do nothing
-        if (paused()) return;
-
         address _asset = IFarm(msg.sender).assetToken();
-        bool assetEnabled = FarmRegistry(Accounting(accounting).farmRegistry()).isAssetEnabled(_asset);
-        require(assetEnabled, AssetNotEnabled(_asset));
-
         uint256 totalAssets = Accounting(accounting).totalAssetsOf(_asset, FarmTypes.LIQUID);
 
         (address[] memory farms, uint256[] memory weights, uint256 totalPower) =

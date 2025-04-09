@@ -30,13 +30,10 @@ contract IntegrationTestSwapFarm is Fixture, IntegrationTestSwapCalldata {
         // this is required because the Pendle SDK takes as an argument the address of which to send
         // the results of the swap, and we hardcode router calldata in this test file.
         vm.prank(address(123456));
-        farm = new SwapFarm(address(core), USDC, sUSDe, address(oracle), 7 days);
+        farm = new SwapFarm(address(core), USDC, sUSDe, address(oracle));
 
         assertEq(block.timestamp, 1734341951, "Wrong fork block");
         assertEq(address(farm), 0xB401175F5D37305304b8ab8c20fc3a49ff2A3190, "Wrong farm deploy address");
-
-        vm.prank(governorAddress);
-        farm.setEnabledRouter(0x6131B5fae19EA4f9D964eAc0408E4408b66337b5, true);
     }
 
     function testSetup() public view {

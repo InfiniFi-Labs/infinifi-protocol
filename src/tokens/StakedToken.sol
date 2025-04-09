@@ -4,21 +4,15 @@ pragma solidity 0.8.28;
 import {EpochLib} from "@libraries/EpochLib.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {ReceiptToken} from "@tokens/ReceiptToken.sol";
-import {YieldSharing} from "@finance/YieldSharing.sol";
-import {CoreControlled} from "@core/CoreControlled.sol";
+import {ActionRestriction} from "@core/ActionRestriction.sol";
 import {ERC20, IERC20, ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /// @notice InfiniFi Staked Token.
 /// @dev be carefull, as this contract is an ERC4626, the "assets" keyword is used to refer to the underlying token
 /// in this case, it's the ReceiptToken. It's a bit confusing because "asset" is the word we use to refer to the backing token (USDC)
 /// everywhere else in the code
-contract StakedToken is ERC4626, CoreControlled {
+contract StakedToken is ERC4626, ActionRestriction {
     using EpochLib for uint256;
-
-    /// @notice error thrown when there are pending losses unapplied
-    /// if you observe this error as a user, call YieldSharing.accrue() before
-    /// attempting a withdrawal from the vault.
-    error PendingLossesUnapplied();
 
     /// @notice emitted when a loss is applied to the vault
     /// @dev epoch could be 0 if the principal of the vault has to be slashed
@@ -26,28 +20,16 @@ contract StakedToken is ERC4626, CoreControlled {
     /// @notice emitted when a profit is applied to the vault
     event VaultProfit(uint256 indexed timestamp, uint256 epoch, uint256 assets);
 
-    /// @notice reference to the YieldSharing contract
-    address public yieldSharing;
-
     /// @notice rewards to distribute per epoch
     /// @dev epochRewards can only contain future rewards in the next epoch,
     /// and not further in the future - see `depositRewards()`.
     mapping(uint256 epoch => uint256 rewards) public epochRewards;
 
     constructor(address _core, address _receiptToken)
-        CoreControlled(_core)
+        ActionRestriction(_core)
         ERC20(string.concat("Savings ", ERC20(_receiptToken).name()), string.concat("s", ERC20(_receiptToken).symbol()))
         ERC4626(IERC20(_receiptToken))
     {}
-
-    /// @notice allows governor to update the yieldSharing reference
-    function setYieldSharing(address _yieldSharing) external onlyCoreRole(CoreRoles.GOVERNOR) {
-        yieldSharing = _yieldSharing;
-    }
-
-    /// ---------------------------------------------------------------------------
-    /// Pausability
-    /// ---------------------------------------------------------------------------
 
     function mint(uint256 _shares, address _receiver) public override whenNotPaused returns (uint256) {
         return super.mint(_shares, _receiver);
@@ -59,7 +41,6 @@ contract StakedToken is ERC4626, CoreControlled {
         whenNotPaused
         returns (uint256)
     {
-        _revertIfThereAreUnaccruedLosses();
         return super.redeem(_amountIn, _to, _receiver);
     }
 
@@ -73,42 +54,7 @@ contract StakedToken is ERC4626, CoreControlled {
         whenNotPaused
         returns (uint256)
     {
-        _revertIfThereAreUnaccruedLosses();
         return super.withdraw(assets, receiver, owner);
-    }
-
-    function maxMint(address _receiver) public view override returns (uint256) {
-        if (paused()) {
-            return 0;
-        }
-        return super.maxMint(_receiver);
-    }
-
-    function maxDeposit(address _receiver) public view override returns (uint256) {
-        if (paused()) {
-            return 0;
-        }
-        return super.maxDeposit(_receiver);
-    }
-
-    function maxRedeem(address _receiver) public view override returns (uint256) {
-        if (paused()) {
-            return 0;
-        }
-        _revertIfThereAreUnaccruedLosses();
-        return super.maxRedeem(_receiver);
-    }
-
-    function maxWithdraw(address _receiver) public view override returns (uint256) {
-        if (paused()) {
-            return 0;
-        }
-        _revertIfThereAreUnaccruedLosses();
-        return super.maxWithdraw(_receiver);
-    }
-
-    function _revertIfThereAreUnaccruedLosses() internal view {
-        require(YieldSharing(yieldSharing).unaccruedYield() >= 0, PendingLossesUnapplied());
     }
 
     /// ---------------------------------------------------------------------------
@@ -168,5 +114,29 @@ contract StakedToken is ERC4626, CoreControlled {
     /// @notice returns the total assets, excluding the rewards that are not available yet
     function totalAssets() public view override returns (uint256) {
         return super.totalAssets() - epochRewards[block.timestamp.nextEpoch()] - _unavailableCurrentEpochRewards();
+    }
+
+    /// ---------------------------------------------------------------------------
+    /// Transfer restrictions
+    /// ---------------------------------------------------------------------------
+
+    function _update(address _from, address _to, uint256 _value) internal override {
+        if (_from != address(0) && _to != address(0)) {
+            // check action restrictions if the transfer is not a burn nor a mint
+            _checkActionRestriction(_from);
+        }
+        return ERC20._update(_from, _to, _value);
+    }
+
+    /// ---------------------------------------------------------------------------
+    /// Redemption restrictions
+    /// ---------------------------------------------------------------------------
+
+    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+        internal
+        override
+    {
+        _checkActionRestriction(caller);
+        return ERC4626._withdraw(caller, receiver, owner, assets, shares);
     }
 }

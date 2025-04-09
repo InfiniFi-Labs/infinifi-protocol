@@ -39,7 +39,7 @@ contract AllocationVotingUnitTest is Fixture {
         assertEq(allocationVoting.getVote(address(illiquidFarm2)), 0, "Error: Initial vote for illiquidFarm2 is not 0");
     }
 
-    function _initLocking(address _user, uint256 _amount, uint32 _unwindingEpochs) internal {
+    function _initLocking(address _user, uint256 _amount) internal {
         vm.startPrank(_user);
         {
             // mint iUSD
@@ -53,18 +53,18 @@ contract AllocationVotingUnitTest is Fixture {
 
             // lock for 4 epochs
             iusd.approve(address(gateway), iusdReceived);
-            gateway.createPosition(iusdReceived, _unwindingEpochs, _user);
+            gateway.createPosition(iusdReceived, 4, _user);
         }
         vm.stopPrank();
         vm.warp(block.timestamp + EpochLib.EPOCH);
     }
 
     function _initAliceLocking(uint256 amount) internal {
-        _initLocking(alice, amount, 4);
+        _initLocking(alice, amount);
     }
 
     function _initBobLocking(uint256 amount) internal {
-        _initLocking(bob, amount, 4);
+        _initLocking(bob, amount);
     }
 
     function testVote() public {
@@ -180,61 +180,6 @@ contract AllocationVotingUnitTest is Fixture {
         );
         assertEq(
             allocationVoting.getVote(address(illiquidFarm2)), 0, "Error: Vote for illiquidFarm2 should be discarded"
-        );
-    }
-
-    function testMultiVote() public {
-        // setup alice with 2 positions, one locked for 4 epochs, the other locked for 8 epochs
-        _initLocking(alice, 1000e6, 4);
-        _initLocking(alice, 1000e6, 8);
-
-        uint256 aliceWeight4 = lockingController.rewardWeightForUnwindingEpochs(alice, 4);
-        uint256 aliceWeight8 = lockingController.rewardWeightForUnwindingEpochs(alice, 8);
-
-        (AllocationVoting.AllocationVote[] memory liquidVotes4, AllocationVoting.AllocationVote[] memory illiquidVotes4)
-        = _prepareVote(aliceWeight4);
-        (AllocationVoting.AllocationVote[] memory liquidVotes8, AllocationVoting.AllocationVote[] memory illiquidVotes8)
-        = _prepareVote(aliceWeight8);
-
-        // cast votes
-        address[] memory assets = new address[](2);
-        assets[0] = address(usdc);
-        assets[1] = address(usdc);
-        uint32[] memory unwindingEpochs = new uint32[](2);
-        unwindingEpochs[0] = 4;
-        unwindingEpochs[1] = 8;
-        AllocationVoting.AllocationVote[][] memory liquidVotes = new AllocationVoting.AllocationVote[][](2);
-        liquidVotes[0] = liquidVotes4;
-        liquidVotes[1] = liquidVotes8;
-        AllocationVoting.AllocationVote[][] memory illiquidVotes = new AllocationVoting.AllocationVote[][](2);
-        illiquidVotes[0] = illiquidVotes4;
-        illiquidVotes[1] = illiquidVotes8;
-
-        vm.prank(alice);
-        gateway.multiVote(assets, unwindingEpochs, liquidVotes, illiquidVotes);
-
-        // check votes
-        advanceEpoch(1);
-
-        assertEq(
-            allocationVoting.getVote(address(farm1)),
-            aliceWeight4 / 2 + aliceWeight8 / 2,
-            "Error: Vote for farm1 is incorrect"
-        );
-        assertEq(
-            allocationVoting.getVote(address(farm2)),
-            aliceWeight4 / 2 + aliceWeight8 / 2,
-            "Error: Vote for farm2 is incorrect"
-        );
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)),
-            aliceWeight4 / 2 + aliceWeight8 / 2,
-            "Error: Vote for illiquidFarm1 is incorrect"
-        );
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm2)),
-            aliceWeight4 / 2 + aliceWeight8 / 2,
-            "Error: Vote for illiquidFarm2 is incorrect"
         );
     }
 
@@ -395,74 +340,5 @@ contract AllocationVotingUnitTest is Fixture {
 
         vm.prank(alice);
         gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
-    }
-
-    // validate / test the fix of Spearbit audit 2025-03 issue #37
-    // the votes could be carried over multiple epochs if there was no vote for a given
-    // farm and then a user voted for the farm.
-    // see commit 53db79cf90b01eac2f785fe6f17d226bffe0976d
-    function testAccumulateVote37() public {
-        _initAliceLocking(1000e6);
-        uint256 aliceWeight = lockingController.rewardWeight(alice);
-
-        AllocationVoting.AllocationVote[] memory liquidVotes = new AllocationVoting.AllocationVote[](1);
-        AllocationVoting.AllocationVote[] memory illiquidVotes = new AllocationVoting.AllocationVote[](1);
-        liquidVotes[0] = AllocationVoting.AllocationVote({farm: address(farm1), weight: uint96(aliceWeight)});
-        illiquidVotes[0] = AllocationVoting.AllocationVote({farm: address(illiquidFarm1), weight: uint96(aliceWeight)});
-
-        // cast vote
-        vm.prank(alice);
-        gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
-
-        // Votes should not apply yet
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Vote for farm1 should not apply yet");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), 0, "Error: Vote for illiquidFarm1 should not apply yet"
-        );
-
-        advanceEpoch(1);
-
-        // Vote should apply now
-
-        assertEq(allocationVoting.getVote(address(farm1)), aliceWeight, "Error: Vote for farm1 should apply");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), aliceWeight, "Error: Vote for illiquidFarm1 should apply"
-        );
-
-        // Move past lockup
-        advanceEpoch(4);
-
-        // Votes should be discarded
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Vote for farm1 should be discarded (1)");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), 0, "Error: Vote for illiquidFarm1 should be discarded (1)"
-        );
-
-        // Vote again
-        vm.prank(alice);
-        gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
-
-        // Votes should still be discarded on the epoch of the vote
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Vote for farm1 should be discarded (2)");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), 0, "Error: Vote for illiquidFarm1 should be discarded (2)"
-        );
-
-        advanceEpoch(1);
-
-        // Vote should apply now
-
-        assertEq(allocationVoting.getVote(address(farm1)), aliceWeight, "Error: Vote for farm1 should apply");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), aliceWeight, "Error: Vote for illiquidFarm1 should apply"
-        );
-
-        advanceEpoch(1);
-
-        // Votes should be discarded
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Vote for farm1 should be discarded (3)");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), 0, "Error: Vote for illiquidFarm1 should be discarded (3)"
-        );
     }
 }

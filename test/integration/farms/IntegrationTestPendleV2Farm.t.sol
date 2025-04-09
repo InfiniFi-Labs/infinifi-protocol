@@ -36,9 +36,6 @@ contract IntegrationTestPendleV2Farm is Fixture, IntegrationTestPendleCalldata {
         // the results of the swap, and we hardcode router calldata in this test file.
         vm.prank(address(123456));
         farm = new PendleV2Farm(address(core), _USDC, _PENDLE_MARKET, _PENDLE_ORACLE, address(oracle));
-
-        vm.prank(governorAddress);
-        farm.setPendleRouter(0x888888888889758F76e7103c6CbF23ABbF58F946);
     }
 
     function testSetup() public view {
@@ -67,7 +64,8 @@ contract IntegrationTestPendleV2Farm is Fixture, IntegrationTestPendleCalldata {
         vm.prank(msig);
         uint256 usdcAmountIn = 500e6;
         uint256 ptAmountOut = 509185354499248657266;
-        farm.wrapAssetToPt(usdcAmountIn, _PENDLE_ROUTER_CALLDATA_1);
+        address pendleRouter = 0x888888888889758F76e7103c6CbF23ABbF58F946;
+        farm.wrapAssetToPt(usdcAmountIn, pendleRouter, _PENDLE_ROUTER_CALLDATA_1);
 
         // 500 USDC remaining after swap, the rest is in PTs
         assertEq(ERC20(_USDC).balanceOf(address(farm)), 500e6);
@@ -96,7 +94,7 @@ contract IntegrationTestPendleV2Farm is Fixture, IntegrationTestPendleCalldata {
         // redeem 250 matured PTs to USDC
         // generate calldata at https://api-v2.pendle.finance/core/docs#/SDK%20(Recommended)/SdkController_redeem
         vm.prank(msig);
-        farm.unwrapPtToAsset(250e18, _PENDLE_ROUTER_CALLDATA_2);
+        farm.unwrapPtToAsset(250e18, pendleRouter, _PENDLE_ROUTER_CALLDATA_2);
 
         assertEq(ERC20(_PENDLE_PT).balanceOf(address(farm)), ptAmountOut - 250e18);
         assertApproxEqAbs(ERC20(_USDC).balanceOf(address(farm)), 750e6, 1e6); // 250 PTs gave ~249.84 USDC
@@ -108,7 +106,7 @@ contract IntegrationTestPendleV2Farm is Fixture, IntegrationTestPendleCalldata {
 
         // unwrap the rest of PTs (259.185354499248657266)
         vm.prank(msig);
-        farm.unwrapPtToAsset(ptAmountOut - 250e18, _PENDLE_ROUTER_CALLDATA_3);
+        farm.unwrapPtToAsset(ptAmountOut - 250e18, pendleRouter, _PENDLE_ROUTER_CALLDATA_3);
 
         assertEq(ERC20(_PENDLE_PT).balanceOf(address(farm)), 0);
         // 249.846654 USDC + 259.026161 USDC from redeeming 259.185354499248657266 PTs

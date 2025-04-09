@@ -18,10 +18,8 @@ contract IntegrationTestAaveV3Farm is Fixture {
     // at block 21337193, (, uint256 supplyCap) = IAaveDataProvider(dataProvider).getReserveCaps(assetToken);
     // the supply cap is 3B
     uint256 public aaveV3USDCSupplyCap = 3_000_000_000e6;
-    // at block 21337193, the total supplied to aave is 1971458791900656 (1.97B)
+    // at block 21337193, the total supplied to aave is 1971458791900656
     uint256 public aaveV3USDCTotalSupplied = 1_971_458_791_900_656;
-    // at block 21337193, the total accrued to aave treasury is 21114203085 (21k)
-    uint256 public aaveV3USDCTreasuryAccrued = 21_114_203_085;
 
     function setUp() public override {
         vm.createSelectFork("mainnet", 21337193);
@@ -67,7 +65,7 @@ contract IntegrationTestAaveV3Farm is Fixture {
         uint256 maxDeposit = aaveV3Farm.maxDeposit();
         // because we set the farm cap to uint.max,
         // the max deposit is the supply cap minus the total supplied to aave
-        uint256 maxDepositAtBlock = aaveV3USDCSupplyCap - aaveV3USDCTotalSupplied - aaveV3USDCTreasuryAccrued;
+        uint256 maxDepositAtBlock = aaveV3USDCSupplyCap - aaveV3USDCTotalSupplied;
         assertEq(maxDeposit, maxDepositAtBlock, "Max deposit amount is not correct!");
 
         // if we set the farm cap to 1500e6,

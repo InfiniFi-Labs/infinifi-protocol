@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
@@ -17,7 +17,7 @@ import {IMaturityFarm, IFarm} from "@interfaces/IMaturityFarm.sol";
 /// @notice This contract is used to deploy assets to Pendle v2
 
 contract PendleV2Farm is Farm, IMaturityFarm {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for ERC20;
     using FixedPointMathLib for uint256;
 
     error PTAlreadyMatured(uint256 maturity);
@@ -51,10 +51,7 @@ contract PendleV2Farm is Farm, IMaturityFarm {
     /// @notice Max slippage for wrapping and unwrapping assets <-> PTs.
     /// @dev Stored as a percentage with 18 decimals of precision, of the minimum
     /// position size compared to the previous position size (so actually 1 - maxSlippage).
-    uint256 public maxSlippage = 0.995e18; // 99.5%
-
-    /// @notice address of the Pendle router used for swaps
-    address public pendleRouter;
+    uint256 private constant _MAX_SLIPPAGE = 0.995e18; // 99.5%
 
     /// @notice Number of assets() wrapped as PTs
     uint256 private totalWrappedAssets;
@@ -88,10 +85,6 @@ contract PendleV2Farm is Farm, IMaturityFarm {
         maturity = IPendleMarket(_pendleMarket).expiry();
     }
 
-    function setPendleRouter(address _pendleRouter) external onlyCoreRole(CoreRoles.GOVERNOR) {
-        pendleRouter = _pendleRouter;
-    }
-
     /// @notice Returns the total assets in the farm
     /// before maturity, the assets are the sum of assets in the farm + assets wrapped + the interpolated yield
     /// after maturity, the assets are the sum of the assets() + the value of the PTs based on oracle prices
@@ -102,12 +95,12 @@ contract PendleV2Farm is Farm, IMaturityFarm {
         } else {
             // after maturity, return the total USDC held in the farm +
             // the PTs value if any are still held
-            uint256 balanceOfPTs = IERC20(ptToken).balanceOf(address(this));
+            uint256 balanceOfPTs = ERC20(ptToken).balanceOf(address(this));
             uint256 ptAssetsValue = 0;
             if (balanceOfPTs > 0) {
                 // estimate the value of the PTs at maturity,
                 // accounting for possible max slippage
-                ptAssetsValue = _ptToAssets(balanceOfPTs).mulWadDown(maxSlippage);
+                ptAssetsValue = _ptToAssets(balanceOfPTs).mulWadDown(_MAX_SLIPPAGE);
             }
             return super.assets() + ptAssetsValue;
         }
@@ -118,16 +111,11 @@ contract PendleV2Farm is Farm, IMaturityFarm {
         return super.assets();
     }
 
-    /// @notice setter for the max tolerated slippage
-    function setMaxSlippage(uint256 _maxSlippage) external onlyCoreRole(CoreRoles.GOVERNOR) {
-        maxSlippage = _maxSlippage;
-    }
-
     /// @notice Wraps assetTokens as PTs.
     /// @dev The transaction may be submitted privately to avoid sandwiching, and the function
     /// can be called multiple times with partial amounts to help reduce slippage.
     /// @dev The caller is trusted to not be sandwiching the swap to steal yield.
-    function wrapAssetToPt(uint256 _assetsIn, bytes memory _calldata)
+    function wrapAssetToPt(uint256 _assetsIn, address _router, bytes memory _calldata)
         external
         whenNotPaused
         onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
@@ -135,18 +123,18 @@ contract PendleV2Farm is Farm, IMaturityFarm {
         require(block.timestamp < maturity, PTAlreadyMatured(maturity));
         // update the already interpolated yield on each wrap
         _alreadyInterpolatedYield = _interpolatingYield();
-        uint256 ptBalanceBefore = IERC20(ptToken).balanceOf(address(this));
+        uint256 ptBalanceBefore = ERC20(ptToken).balanceOf(address(this));
 
         // do swap
-        IERC20(assetToken).forceApprove(pendleRouter, _assetsIn);
-        (bool success, bytes memory reason) = pendleRouter.call(_calldata);
+        ERC20(assetToken).approve(_router, _assetsIn);
+        (bool success, bytes memory reason) = _router.call(_calldata);
         require(success, SwapFailed(reason));
 
         // check slippage
-        uint256 ptBalanceAfter = IERC20(ptToken).balanceOf(address(this));
+        uint256 ptBalanceAfter = ERC20(ptToken).balanceOf(address(this));
         uint256 ptReceived = ptBalanceAfter - ptBalanceBefore;
-        uint256 minAssetsOut = _assetsIn.mulWadDown(maxSlippage);
-        require(_ptToAssets(ptReceived) >= minAssetsOut, SlippageTooHigh(minAssetsOut, _ptToAssets(ptReceived)));
+        uint256 minAssetsOut = _assetsIn.mulWadDown(_MAX_SLIPPAGE);
+        require(_ptToAssets(ptReceived) > minAssetsOut, SlippageTooHigh(minAssetsOut, _ptToAssets(ptReceived)));
 
         // update wrapped assets
         totalWrappedAssets += _assetsIn;
@@ -157,24 +145,24 @@ contract PendleV2Farm is Farm, IMaturityFarm {
     /// @notice Unwraps PTs to assetTokens.
     /// @dev The transaction may be submitted privately to avoid sandwiching, and the function
     /// can be called multiple times with partial amounts to help reduce slippage.
-    function unwrapPtToAsset(uint256 _ptTokensIn, bytes memory _calldata)
+    function unwrapPtToAsset(uint256 _ptTokensIn, address _router, bytes memory _calldata)
         external
         whenNotPaused
         onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
     {
         require(block.timestamp >= maturity, PTNotMatured(maturity));
-        uint256 assetsBefore = IERC20(assetToken).balanceOf(address(this));
+        uint256 assetsBefore = ERC20(assetToken).balanceOf(address(this));
 
         // do swap
-        IERC20(ptToken).forceApprove(pendleRouter, _ptTokensIn);
-        (bool success, bytes memory reason) = pendleRouter.call(_calldata);
+        ERC20(ptToken).approve(_router, _ptTokensIn);
+        (bool success, bytes memory reason) = _router.call(_calldata);
         require(success, SwapFailed(reason));
 
         // check slippage
-        uint256 assetsAfter = IERC20(assetToken).balanceOf(address(this));
+        uint256 assetsAfter = ERC20(assetToken).balanceOf(address(this));
         uint256 assetsReceived = assetsAfter - assetsBefore;
-        uint256 minAssetsOut = _ptToAssets(_ptTokensIn).mulWadDown(maxSlippage);
-        require(assetsReceived >= minAssetsOut, SlippageTooHigh(minAssetsOut, assetsReceived));
+        uint256 minAssetsOut = _ptToAssets(_ptTokensIn).mulWadDown(_MAX_SLIPPAGE);
+        require(assetsReceived > minAssetsOut, SlippageTooHigh(minAssetsOut, assetsReceived));
 
         // update unwrapped assets
         totalUnwrappedAssets += assetsReceived;
@@ -191,14 +179,7 @@ contract PendleV2Farm is Farm, IMaturityFarm {
     /// @dev Return the max deposit amount for the underlying protocol
     function _underlyingProtocolMaxDeposit() internal view override returns (uint256) {
         // Get the cap for SY token
-        uint256 syDepositCap;
-        try ISYToken(syToken).getAbsoluteSupplyCap() returns (uint256 cap) {
-            // No need to check for getAbsoluteTotalSupply() when getAbsoluteSupplyCap() is implemented
-            syDepositCap = cap - ISYToken(syToken).getAbsoluteTotalSupply();
-        } catch {
-            // If the SYToken doesn't implement getAbsoluteSupplyCap, use max uint as default
-            return type(uint256).max;
-        }
+        uint256 syDepositCap = ISYToken(syToken).getAbsoluteSupplyCap() - ISYToken(syToken).getAbsoluteTotalSupply();
 
         // Convert the cap to PT token
         uint256 ptDepositCap = syDepositCap.divWadDown(
@@ -212,7 +193,7 @@ contract PendleV2Farm is Farm, IMaturityFarm {
     /// @dev Withdrawal can only handle the held assetTokens (i.e. the liquidity()).
     /// @dev See call to unwrapPtToAsset() for the actual swap out of Pendle PTs.
     function _withdraw(uint256 _amount, address _to) internal override {
-        IERC20(assetToken).safeTransfer(_to, _amount);
+        ERC20(assetToken).safeTransfer(_to, _amount);
     }
 
     /// @notice Converts a number of PTs to assetTokens based on oracle rates.
@@ -231,7 +212,7 @@ contract PendleV2Farm is Farm, IMaturityFarm {
     function _interpolatingYield() internal view returns (uint256) {
         // if no wrapping has been made yet, no yield to interpolate
         if (_lastWrappedTimestamp == 0) return 0;
-        uint256 balanceOfPTs = IERC20(ptToken).balanceOf(address(this));
+        uint256 balanceOfPTs = ERC20(ptToken).balanceOf(address(this));
         // if not PTs held, no need to interpolate
         if (balanceOfPTs == 0) return 0;
 
@@ -243,7 +224,7 @@ contract PendleV2Farm is Farm, IMaturityFarm {
         uint256 assetToPtUnderlyingRate = IOracle(assetToPtUnderlyingOracle).price();
         uint256 maturityAssetAmount = balanceOfPTs.mulWadDown(assetToPtUnderlyingRate);
         // account for slippage, because unwrapping PTs => assets will cause some slippage using pendle's AMM
-        maturityAssetAmount = maturityAssetAmount.mulWadDown(maxSlippage);
+        maturityAssetAmount = maturityAssetAmount.mulWadDown(_MAX_SLIPPAGE);
 
         // compute the yield to interpolate, which is the target amount (maturityAssetAmount) minus the amount of assets wrapped
         // minus the already interpolated yield (can be != 0 if we made multiple wraps)
@@ -251,10 +232,9 @@ contract PendleV2Farm is Farm, IMaturityFarm {
 
         // cannot underflow because _lastWrappedTimestamp cannot be after maturity as we cannot wrap after maturity
         // and _lastWrappedTimestamp is always > 0 otherwise the first line of this function would have returned 0
-        uint256 yieldPerSecond =
-            totalYieldRemainingToInterpolate * FixedPointMathLib.WAD / (maturity - _lastWrappedTimestamp);
+        uint256 yieldPerSecond = totalYieldRemainingToInterpolate / (maturity - _lastWrappedTimestamp);
         uint256 secondsSinceLastWrap = block.timestamp - _lastWrappedTimestamp;
         uint256 interpolatedYield = yieldPerSecond * secondsSinceLastWrap;
-        return _alreadyInterpolatedYield + interpolatedYield / FixedPointMathLib.WAD;
+        return _alreadyInterpolatedYield + interpolatedYield;
     }
 }

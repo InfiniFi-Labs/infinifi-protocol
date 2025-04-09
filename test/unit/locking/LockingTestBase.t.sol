@@ -12,7 +12,8 @@ contract LockingTestBase is Fixture {
     }
 
     function _createPosition(address _user, uint256 _amount, uint32 _unwindingEpochs) internal {
-        _mintBackedReceiptTokens(_user, _amount);
+        vm.prank(address(mintController));
+        iusd.mint(_user, _amount);
 
         vm.startPrank(_user);
         {
@@ -23,7 +24,8 @@ contract LockingTestBase is Fixture {
     }
 
     function _depositRewards(uint256 _amount) public {
-        _mintBackedReceiptTokens(address(yieldSharing), _amount);
+        vm.prank(address(mintController));
+        iusd.mint(address(yieldSharing), _amount);
 
         vm.startPrank(address(yieldSharing));
         {

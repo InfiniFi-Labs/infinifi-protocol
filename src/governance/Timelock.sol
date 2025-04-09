@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
-import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {CoreControlled} from "@core/CoreControlled.sol";
 
 /// @title An override of the regular OZ governance/TimelockController to allow uniform
@@ -15,7 +14,10 @@ contract Timelock is TimelockController, CoreControlled {
     constructor(address _core, uint256 _minDelay)
         CoreControlled(_core)
         TimelockController(_minDelay, new address[](0), new address[](0), address(0))
-    {}
+    {
+        _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
+        _revokeRole(DEFAULT_ADMIN_ROLE, address(this));
+    }
 
     /// @dev override of OZ access/AccessControl.sol inherited by governance/TimelockController.sol
     /// This will check roles with Core, and not with the storage mapping from AccessControl.sol
@@ -31,15 +33,4 @@ contract Timelock is TimelockController, CoreControlled {
 
     /// @dev override of OZ access/AccessControl.sol, noop because role management is handled in Core.
     function _revokeRole(bytes32 role, address account) internal override returns (bool) {}
-
-    /// @dev override CoreControlled.emergencyAction to noop, as this provides a 2nd path to execute
-    /// arbitrary calls, potentially bypassing the timelock restriction (one timelock with GOVERNOR role
-    /// could execute without delay arbitrary calls in a 2nd timelock by using emergencyAction).
-    function emergencyAction(Call[] calldata)
-        external
-        payable
-        override
-        onlyCoreRole(CoreRoles.GOVERNOR)
-        returns (bytes[] memory)
-    {} // noop
 }

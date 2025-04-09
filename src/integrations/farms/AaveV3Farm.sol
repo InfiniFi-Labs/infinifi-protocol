@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
 import {Farm} from "@integrations/Farm.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IAaveV3Pool} from "@interfaces/aave/IAaveV3Pool.sol";
@@ -13,16 +10,19 @@ import {IAaveDataProvider} from "@interfaces/aave/IAaveDataProvider.sol";
 /// @title Aave V3 Farm
 /// @notice This contract is used to deploy assets to aave v3
 contract AaveV3Farm is Farm {
-    using SafeERC20 for IERC20;
-
     address public immutable aToken;
 
     /// @notice the aave v3 lending pool
     address public immutable lendingPool;
 
+    /// @notice the aave v3 data provider contract
+    address public immutable dataProvider;
+
     constructor(address _aToken, address _aaveV3Pool, address _core, address _assetToken) Farm(_core, _assetToken) {
         aToken = _aToken;
         lendingPool = _aaveV3Pool;
+        address _addressProvider = IAaveV3Pool(lendingPool).ADDRESSES_PROVIDER();
+        dataProvider = IAddressProvider(_addressProvider).getPoolDataProvider();
     }
 
     /// @notice Returns the total assets in the farm + the rebasing balance of the aToken
@@ -34,13 +34,7 @@ contract AaveV3Farm is Farm {
     /// @dev This is the amount of assetToken that is available to withdraw from aave for asset Token
     /// @dev and also adds the amount of assetToken held by the Farm contract (not deposited to aave if any)
     function liquidity() public view override returns (uint256) {
-        uint256 totalAssets = assets();
-
-        // if aave is paused, cannot withdraw from aave
-        address dataProvider = IAddressProvider(IAaveV3Pool(lendingPool).ADDRESSES_PROVIDER()).getPoolDataProvider();
-        bool isAavePaused = IAaveDataProvider(dataProvider).getPaused(assetToken);
-        if (isAavePaused) return super.assets();
-
+        uint256 totalAssets = this.assets();
         // find the amount of assetToken held by the aToken contract
         // this is the liquidity available on aave for the assetToken
         uint256 availableLiquidity = ERC20(assetToken).balanceOf(aToken);
@@ -57,7 +51,7 @@ contract AaveV3Farm is Farm {
         // get the pending balance of the asset token
         uint256 availableBalance = ERC20(assetToken).balanceOf(address(this));
         // approve the lending pool to spend the asset tokens
-        IERC20(assetToken).forceApprove(address(lendingPool), availableBalance);
+        ERC20(assetToken).approve(address(lendingPool), availableBalance);
         // trigger the deposit the asset tokens to the lending pool
         IAaveV3Pool(lendingPool).supply(assetToken, availableBalance, address(this), 0);
     }
@@ -65,24 +59,17 @@ contract AaveV3Farm is Farm {
     /// @notice Returns the max deposit amount for the underlying protocol
     function _underlyingProtocolMaxDeposit() internal view override returns (uint256) {
         // aave returns the supply cap with 0 decimals. e.g 1000 USDC supply cap returns 1000
-        address dataProvider = IAddressProvider(IAaveV3Pool(lendingPool).ADDRESSES_PROVIDER()).getPoolDataProvider();
         (, uint256 supplyCap) = IAaveDataProvider(dataProvider).getReserveCaps(assetToken);
-
-        // aave pools that return 0 supplyCap are actually uncapped
-        if (supplyCap == 0) return type(uint256).max;
 
         // convert the supply cap to the asset token decimals
         uint256 supplyCapInAssetTokenDecimals = supplyCap * 10 ** ERC20(assetToken).decimals();
 
-        IAaveDataProvider.AaveDataProviderReserveData memory _reserveData =
-            IAaveDataProvider(dataProvider).getReserveData(assetToken);
+        // get the amount already supplied to aave
+        // which is expressed by the total supply of the aToken
+        uint256 currentUnderlyingProtocolSupply = ERC20(aToken).totalSupply();
 
-        // supply cap already reached
-        if (_reserveData.totalAToken + _reserveData.accruedToTreasuryScaled >= supplyCapInAssetTokenDecimals) {
-            return 0;
-        }
-
-        return supplyCapInAssetTokenDecimals - (_reserveData.totalAToken + _reserveData.accruedToTreasuryScaled);
+        // max deposit in the underlying protocol is the supply cap minus the current protocol supply
+        return supplyCapInAssetTokenDecimals - currentUnderlyingProtocolSupply;
     }
 
     /// @notice Withdraw from the aave v3 lending pool

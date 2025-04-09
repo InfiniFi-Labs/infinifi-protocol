@@ -289,31 +289,4 @@ contract LockingModuleUnitTest is LockingTestBase {
         assertEq(iusd.balanceOf(alice), 1000);
         assertEq(lockingController.shares(alice, 2), 0);
     }
-
-    function testUnstakeAndLock() public {
-        uint256 amount = 12345;
-        _mintBackedReceiptTokens(alice, amount);
-
-        vm.startPrank(alice);
-        iusd.approve(address(siusd), amount);
-        uint256 stakedTokenBalance = siusd.deposit(amount, alice);
-        vm.stopPrank();
-
-        vm.startPrank(alice);
-        {
-            siusd.approve(address(gateway), stakedTokenBalance);
-            gateway.unstakeAndLock(alice, stakedTokenBalance, 8);
-        }
-        vm.stopPrank();
-
-        assertEq(siusd.balanceOf(alice), 0);
-        assertEq(lockingController.balanceOf(alice), amount);
-    }
-
-    function testFullSlashingPauses() public {
-        _createPosition(alice, 1000, 10);
-        _applyLosses(1000);
-
-        assertTrue(lockingController.paused());
-    }
 }

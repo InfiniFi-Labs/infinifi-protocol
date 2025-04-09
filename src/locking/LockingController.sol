@@ -31,8 +31,6 @@ contract LockingController is CoreControlled {
 
     error TransferFailed();
     error InvalidBucket(uint32 unwindingEpochs);
-    error InvalidUnwindingEpochs(uint32 unwindingEpochs);
-    error InvalidMultiplier(uint256 multiplier);
     error BucketMustBeLongerDuration(uint32 oldValue, uint32 newValue);
     error UnwindingInProgress();
 
@@ -44,8 +42,6 @@ contract LockingController is CoreControlled {
     );
     event RewardsDeposited(uint256 indexed timestamp, uint256 amount);
     event LossesApplied(uint256 indexed timestamp, uint256 amount);
-    event BucketEnabled(uint256 indexed timestamp, uint256 bucket, address shareToken, uint256 multiplier);
-    event BucketMultiplierUpdated(uint256 indexed timestamp, uint256 bucket, uint256 multiplier);
 
     /// ----------------------------------------------------------------------------
     /// STATE
@@ -81,15 +77,10 @@ contract LockingController is CoreControlled {
         onlyCoreRole(CoreRoles.GOVERNOR)
     {
         require(buckets[_unwindingEpochs].shareToken == address(0), InvalidBucket(_unwindingEpochs));
-        require(_unwindingEpochs > 0, InvalidUnwindingEpochs(_unwindingEpochs));
-        require(_unwindingEpochs <= 100, InvalidUnwindingEpochs(_unwindingEpochs));
-        require(_multiplier >= FixedPointMathLib.WAD, InvalidMultiplier(_multiplier));
-        require(_multiplier <= 2 * FixedPointMathLib.WAD, InvalidMultiplier(_multiplier));
 
         buckets[_unwindingEpochs].shareToken = _shareToken;
         buckets[_unwindingEpochs].multiplier = _multiplier;
         enabledBuckets.push(_unwindingEpochs);
-        emit BucketEnabled(block.timestamp, _unwindingEpochs, _shareToken, _multiplier);
     }
 
     /// @notice update the multiplier of a given bucket
@@ -101,14 +92,10 @@ contract LockingController is CoreControlled {
         BucketData memory data = buckets[_unwindingEpochs];
         require(data.shareToken != address(0), InvalidBucket(_unwindingEpochs));
 
-        require(_multiplier >= FixedPointMathLib.WAD, InvalidMultiplier(_multiplier));
-        require(_multiplier <= 2 * FixedPointMathLib.WAD, InvalidMultiplier(_multiplier));
-
         uint256 oldRewardWeight = data.totalReceiptTokens.mulWadDown(data.multiplier);
         uint256 newRewardWeight = data.totalReceiptTokens.mulWadDown(_multiplier);
         globalRewardWeight = globalRewardWeight + newRewardWeight - oldRewardWeight;
         buckets[_unwindingEpochs].multiplier = _multiplier;
-        emit BucketMultiplierUpdated(block.timestamp, _unwindingEpochs, _multiplier);
     }
 
     /// ----------------------------------------------------------------------------
@@ -224,8 +211,9 @@ contract LockingController is CoreControlled {
         BucketData memory data = buckets[_unwindingEpochs];
         require(data.shareToken != address(0), InvalidBucket(_unwindingEpochs));
 
+        uint256 userShares = IERC20(data.shareToken).balanceOf(msg.sender);
         uint256 totalShares = IERC20(data.shareToken).totalSupply();
-        uint256 userReceiptToken = _shares.mulDivDown(data.totalReceiptTokens, totalShares);
+        uint256 userReceiptToken = userShares.mulDivDown(data.totalReceiptTokens, totalShares);
 
         require(IERC20(data.shareToken).transferFrom(msg.sender, address(this), _shares), TransferFailed());
         LockedPositionToken(data.shareToken).burn(_shares);
@@ -246,12 +234,11 @@ contract LockingController is CoreControlled {
     }
 
     /// @notice Increase the unwinding period of a position
-    function increaseUnwindingEpochs(
-        uint256 _shares,
-        uint32 _oldUnwindingEpochs,
-        uint32 _newUnwindingEpochs,
-        address _recipient
-    ) external whenNotPaused onlyCoreRole(CoreRoles.ENTRY_POINT) {
+    function increaseUnwindingEpochs(uint32 _oldUnwindingEpochs, uint32 _newUnwindingEpochs, address _recipient)
+        external
+        whenNotPaused
+        onlyCoreRole(CoreRoles.ENTRY_POINT)
+    {
         require(
             _newUnwindingEpochs > _oldUnwindingEpochs,
             BucketMustBeLongerDuration(_oldUnwindingEpochs, _newUnwindingEpochs)
@@ -263,14 +250,15 @@ contract LockingController is CoreControlled {
         require(newData.shareToken != address(0), InvalidBucket(_newUnwindingEpochs));
 
         // burn position in old share tokens
-        if (_shares == 0) return;
+        uint256 oldShares = IERC20(oldData.shareToken).balanceOf(msg.sender);
+        if (oldShares == 0) return;
         uint256 oldTotalSupply = IERC20(oldData.shareToken).totalSupply();
-        uint256 receiptTokens = _shares.mulDivDown(oldData.totalReceiptTokens, oldTotalSupply);
+        uint256 receiptTokens = oldShares.mulDivDown(oldData.totalReceiptTokens, oldTotalSupply);
         if (receiptTokens == 0) return;
         uint256 oldTotalRewardWeight = oldData.totalReceiptTokens.mulWadDown(oldData.multiplier);
         uint256 oldRewardWeight = receiptTokens.mulDivUp(oldTotalRewardWeight, oldData.totalReceiptTokens);
         oldRewardWeight = _min(oldRewardWeight, oldTotalRewardWeight); // up rounding could cause underflows
-        ERC20Burnable(oldData.shareToken).burnFrom(msg.sender, _shares);
+        ERC20Burnable(oldData.shareToken).burnFrom(msg.sender, oldShares);
         oldData.totalReceiptTokens -= receiptTokens;
         buckets[_oldUnwindingEpochs] = oldData;
 
@@ -286,7 +274,7 @@ contract LockingController is CoreControlled {
         // update global reward weight
         globalRewardWeight = globalRewardWeight + newRewardWeight - oldRewardWeight;
 
-        emit PositionRemoved(block.timestamp, _recipient, receiptTokens, _oldUnwindingEpochs);
+        emit PositionRemoved(block.timestamp, msg.sender, receiptTokens, _oldUnwindingEpochs);
         emit PositionCreated(block.timestamp, _recipient, receiptTokens, _newUnwindingEpochs);
     }
 
@@ -418,7 +406,6 @@ contract LockingController is CoreControlled {
 
         uint256 nBuckets = enabledBuckets.length;
         uint256 _globalRewardWeight = globalRewardWeight;
-        uint256 globalReceiptTokenDecrement = 0;
         for (uint256 i = 0; i < nBuckets; i++) {
             BucketData storage data = buckets[enabledBuckets[i]];
 
@@ -428,7 +415,7 @@ contract LockingController is CoreControlled {
             uint256 allocation = epochTotalReceiptToken.mulDivUp(_amount, _globalReceiptToken);
             allocation = _min(allocation, epochTotalReceiptToken); // up rounding could cause underflows
             data.totalReceiptTokens = epochTotalReceiptToken - allocation;
-            globalReceiptTokenDecrement += allocation;
+            _globalReceiptToken -= allocation;
 
             // slash reward weight
             uint256 multiplier = data.multiplier;
@@ -438,18 +425,7 @@ contract LockingController is CoreControlled {
             _globalRewardWeight -= rewardWeightDecrease;
         }
 
-        globalReceiptToken = _globalReceiptToken - globalReceiptTokenDecrement;
+        globalReceiptToken = _globalReceiptToken;
         globalRewardWeight = _globalRewardWeight;
-
-        // if a full slashing occurred either in the UnwindingModule or in the LockingController,
-        // pause the contract to prevent any further operations.
-        // Resolving the situation will require a protocol upgrade, as the share prices of the
-        // circulating locked tokens are now 0, and/or the slashingIndex in the unwindingModule is 0.
-        {
-            bool unwindingWipedOut = amountToUnwinding > 0 && amountToUnwinding == unwindingBalance;
-            bool globalWipedOut = globalReceiptTokenDecrement > 0 && globalReceiptTokenDecrement == _globalReceiptToken;
-
-            if (unwindingWipedOut || globalWipedOut) _pause();
-        }
     }
 }

@@ -13,11 +13,6 @@ interface IRedeemController {
     /// @notice error emitted when the redemption amount is too low
     error RedeemAmountTooLow(uint256 _amountIn, uint256 _minRedemptionAmount);
 
-    /// @notice event emitted when before redeem hook is changed by the governance
-    event BeforeRedeemHookChanged(uint256 indexed timestamp, address hook);
-    /// @notice event emitted when minimum redemption amount is updated
-    event MinRedemptionAmountUpdated(uint256 indexed timestamp, uint256 amount);
-
     /// @notice event emitted upon a redemption
     event Redeem(uint256 indexed timestamp, address indexed to, address asset, uint256 amountIn, uint256 amountOut);
 

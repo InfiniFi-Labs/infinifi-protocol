@@ -12,4 +12,3 @@
 @governance/=src/governance/
 @integrations/=src/integrations/
 @test/=test/
-@deployment/=deployment/

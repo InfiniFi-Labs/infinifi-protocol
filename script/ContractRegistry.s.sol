@@ -10,9 +10,9 @@ import {AllocationVoting} from "@governance/AllocationVoting.sol";
 
 /// Integrations
 import {FarmRegistry} from "@integrations/FarmRegistry.sol";
+import {FarmRebalancer} from "@integrations/farms/movement/FarmRebalancer.sol";
 import {UnwindingModule} from "@locking/UnwindingModule.sol";
 import {FixedPriceOracle} from "@finance/oracles/FixedPriceOracle.sol";
-import {ManualRebalancer} from "@integrations/farms/movement/ManualRebalancer.sol";
 
 /// Core
 import {InfiniFiCore} from "@core/InfiniFiCore.sol";
@@ -38,7 +38,7 @@ abstract contract ContractRegistry {
     YieldSharing public yieldSharing;
     ReceiptToken public receiptToken;
     FarmRegistry public farmRegistry;
-    ManualRebalancer public manualRebalancer;
+    FarmRebalancer public farmRebalancer;
     UnwindingModule public unwindingModule;
     AllocationVoting public allocationVoting;
     FixedPriceOracle public collateralOracle;

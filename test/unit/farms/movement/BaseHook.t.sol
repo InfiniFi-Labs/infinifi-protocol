@@ -41,14 +41,6 @@ contract BaseHookTest is Test {
         return true;
     }
 
-    function isAssetEnabled(address _asset) external pure returns (bool) {
-        return _asset == address(0);
-    }
-
-    function farmRegistry() external view returns (address) {
-        return address(this);
-    }
-
     /// ============================================================
     /// LiabilityHooks test configuration & helpers
     /// ============================================================

@@ -13,18 +13,10 @@ import {RedeemController} from "@funding/RedeemController.sol";
 import {AllocationVoting} from "@governance/AllocationVoting.sol";
 import {LockingController} from "@locking/LockingController.sol";
 import {LockedPositionToken} from "@tokens/LockedPositionToken.sol";
-import {YieldSharing} from "@finance/YieldSharing.sol";
 
 /// @notice Gateway to interact with the InfiniFi protocol
 contract InfiniFiGatewayV1 is CoreControlled {
     using SafeERC20 for ERC20;
-
-    /// @notice error thrown when there are pending losses unapplied
-    /// if you observe this error as a user, call YieldSharing.accrue() before
-    /// attempting a withdrawal from the vault.
-    error PendingLossesUnapplied();
-
-    event AddressSet(uint256 timestamp, string indexed name, address _address);
 
     /// @notice address registry of the gateway
     mapping(bytes32 => address) public addresses;
@@ -44,7 +36,6 @@ contract InfiniFiGatewayV1 is CoreControlled {
     /// @notice set an address for a given name
     function setAddress(string memory _name, address _address) external onlyCoreRole(CoreRoles.GOVERNOR) {
         addresses[keccak256(abi.encode(_name))] = _address;
-        emit AddressSet(block.timestamp, _name, _address);
     }
 
     /// @notice get an address for a given name
@@ -62,7 +53,7 @@ contract InfiniFiGatewayV1 is CoreControlled {
 
         usdc.safeTransferFrom(msg.sender, address(this), _amount);
         usdc.approve(address(mintController), _amount);
-        return mintController.mint(_to, _amount);
+        return mintController.mint(_to, _amount, true);
     }
 
     function mintAndStake(address _to, uint256 _amount) external whenNotPaused returns (uint256) {
@@ -73,18 +64,15 @@ contract InfiniFiGatewayV1 is CoreControlled {
 
         usdc.safeTransferFrom(msg.sender, address(this), _amount);
         usdc.approve(address(mintController), _amount);
-        uint256 receiptTokens = mintController.mint(address(this), _amount);
+        uint256 receiptTokens = mintController.mint(address(this), _amount, false);
 
         iusd.approve(address(siusd), receiptTokens);
         siusd.deposit(receiptTokens, _to);
+        siusd.restrictActionUntil(_to, block.timestamp + mintController.restrictionDuration());
         return receiptTokens;
     }
 
-    function mintAndLock(address _to, uint256 _amount, uint32 _unwindingEpochs)
-        external
-        whenNotPaused
-        returns (uint256)
-    {
+    function mintAndLock(address _to, uint256 _amount, uint32 _unwindingEpochs) external whenNotPaused {
         MintController mintController = MintController(getAddress("mintController"));
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
         LockingController lockingController = LockingController(getAddress("lockingController"));
@@ -92,28 +80,10 @@ contract InfiniFiGatewayV1 is CoreControlled {
 
         usdc.safeTransferFrom(msg.sender, address(this), _amount);
         usdc.approve(address(mintController), _amount);
-        uint256 receiptTokens = mintController.mint(address(this), _amount);
+        uint256 receiptTokens = mintController.mint(address(this), _amount, false);
 
         iusd.approve(address(lockingController), receiptTokens);
         lockingController.createPosition(receiptTokens, _unwindingEpochs, _to);
-        return receiptTokens;
-    }
-
-    function unstakeAndLock(address _to, uint256 _amount, uint32 _unwindingEpochs)
-        external
-        whenNotPaused
-        returns (uint256)
-    {
-        ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
-        StakedToken siusd = StakedToken(getAddress("stakedToken"));
-        LockingController lockingController = LockingController(getAddress("lockingController"));
-
-        siusd.transferFrom(msg.sender, address(this), _amount);
-        uint256 receiptTokens = siusd.redeem(_amount, address(this), address(this));
-
-        iusd.approve(address(lockingController), receiptTokens);
-        lockingController.createPosition(receiptTokens, _unwindingEpochs, _to);
-        return receiptTokens;
     }
 
     function createPosition(uint256 _amount, uint32 _unwindingEpochs, address _recipient) external whenNotPaused {
@@ -141,7 +111,7 @@ contract InfiniFiGatewayV1 is CoreControlled {
         uint256 shares = liusd.balanceOf(msg.sender);
         liusd.transferFrom(msg.sender, address(this), shares);
         liusd.approve(address(lockingController), shares);
-        lockingController.increaseUnwindingEpochs(shares, _oldUnwindingEpochs, _newUnwindingEpochs, msg.sender);
+        lockingController.increaseUnwindingEpochs(_oldUnwindingEpochs, _newUnwindingEpochs, msg.sender);
     }
 
     function cancelUnwinding(uint256 _unwindingTimestamp, uint32 _newUnwindingEpochs) external whenNotPaused {
@@ -151,12 +121,10 @@ contract InfiniFiGatewayV1 is CoreControlled {
     }
 
     function withdraw(uint256 _unwindingTimestamp) external whenNotPaused {
-        _revertIfThereAreUnaccruedLosses();
         LockingController(getAddress("lockingController")).withdraw(msg.sender, _unwindingTimestamp);
     }
 
     function redeem(address _to, uint256 _amount) external whenNotPaused returns (uint256) {
-        _revertIfThereAreUnaccruedLosses();
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
         RedeemController redeemController = RedeemController(getAddress("redeemController"));
 
@@ -178,23 +146,5 @@ contract InfiniFiGatewayV1 is CoreControlled {
         AllocationVoting(getAddress("allocationVoting")).vote(
             msg.sender, _asset, _unwindingEpochs, _liquidVotes, _illiquidVotes
         );
-    }
-
-    function multiVote(
-        address[] calldata _assets,
-        uint32[] calldata _unwindingEpochs,
-        AllocationVoting.AllocationVote[][] calldata _liquidVotes,
-        AllocationVoting.AllocationVote[][] calldata _illiquidVotes
-    ) external whenNotPaused {
-        AllocationVoting allocationVoting = AllocationVoting(getAddress("allocationVoting"));
-
-        for (uint256 i = 0; i < _assets.length; i++) {
-            allocationVoting.vote(msg.sender, _assets[i], _unwindingEpochs[i], _liquidVotes[i], _illiquidVotes[i]);
-        }
-    }
-
-    function _revertIfThereAreUnaccruedLosses() internal view {
-        YieldSharing yieldSharing = YieldSharing(getAddress("yieldSharing"));
-        require(yieldSharing.unaccruedYield() >= 0, PendingLossesUnapplied());
     }
 }

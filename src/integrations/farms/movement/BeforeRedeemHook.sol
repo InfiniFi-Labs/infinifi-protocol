@@ -4,18 +4,15 @@ pragma solidity 0.8.28;
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
 import {IFarm} from "@interfaces/IFarm.sol";
-import {FarmTypes} from "@libraries/FarmTypes.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {Accounting} from "@finance/Accounting.sol";
-import {FarmRegistry} from "@integrations/FarmRegistry.sol";
+import {FarmTypes} from "@libraries/FarmTypes.sol";
 import {CoreControlled} from "@core/CoreControlled.sol";
 import {AllocationVoting} from "@governance/AllocationVoting.sol";
 import {IBeforeRedeemHook} from "@interfaces/IRedeemController.sol";
 
 contract BeforeRedeemHook is IBeforeRedeemHook, CoreControlled {
     using FixedPointMathLib for uint256;
-
-    error AssetNotEnabled(address _asset);
 
     address public accounting;
     address public allocationVoting;
@@ -30,14 +27,9 @@ contract BeforeRedeemHook is IBeforeRedeemHook, CoreControlled {
         public
         onlyCoreRole(CoreRoles.RECEIPT_TOKEN_BURNER)
     {
-        // if the hook is paused, do nothing
-        if (paused()) return;
-
         if (_assetAmountOut == 0) return;
 
         address _asset = IFarm(msg.sender).assetToken();
-        bool assetEnabled = FarmRegistry(Accounting(accounting).farmRegistry()).isAssetEnabled(_asset);
-        require(assetEnabled, AssetNotEnabled(_asset));
         uint256 totalAssets = Accounting(accounting).totalAssetsOf(_asset, FarmTypes.LIQUID);
 
         if (totalAssets == 0) {
@@ -111,7 +103,7 @@ contract BeforeRedeemHook is IBeforeRedeemHook, CoreControlled {
     function _processProportionalRedeem(address[] memory _farms, uint256 _totalAssets, uint256 _amount) internal {
         for (uint256 i = 0; i < _farms.length; i++) {
             uint256 farmBalance = IFarm(_farms[i]).assets();
-            uint256 assetsOut = _amount.mulDivUp(farmBalance, _totalAssets);
+            uint256 assetsOut = _amount.mulDivDown(farmBalance, _totalAssets);
             if (assetsOut > 0) {
                 IFarm(_farms[i]).withdraw(assetsOut, msg.sender);
             }

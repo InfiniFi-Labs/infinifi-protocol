@@ -29,7 +29,6 @@ contract UnwindingModuleUnitTest is LockingTestBase {
         }
         vm.stopPrank();
         uint256 startUnwindingTimestamp = block.timestamp;
-        advanceEpoch(1);
 
         // unwinding should move alice out of the lockingModule
         assertEq(lockingController.balanceOf(alice), 0, "Error: Alice's balance after unwinding is not correct");
@@ -81,6 +80,12 @@ contract UnwindingModuleUnitTest is LockingTestBase {
 
         // during unwinding, the reward weight should decrease
         // from 1200 to 1000 over 10 epochs, then stay at 1000
+        advanceEpoch(1);
+        // at the first epoch after startUnwinding, the reward weight should still be the same,
+        // because the unwinding actually starts on the next epoch when initiated. This behavior
+        // has been chosen to avoid 1-week locking period from being able to withdraw instantly
+        // if unwinding was started just before an epoch transition.
+        // A user locking for 1 week will actually need to unwind for a duration between [7, 14[ days
         assertEq(
             unwindingModule.totalRewardWeight(),
             1200,
@@ -339,7 +344,6 @@ contract UnwindingModuleUnitTest is LockingTestBase {
             gateway.cancelUnwinding(startUnwindingTimestamp, 10);
         }
         vm.stopPrank();
-        advanceEpoch(1);
 
         assertEq(
             lockingController.globalRewardWeight(), 0, "Error: global reward weight does not reflect correct amount"
@@ -349,7 +353,7 @@ contract UnwindingModuleUnitTest is LockingTestBase {
         );
         advanceEpoch(6);
         assertEq(
-            unwindingModule.totalRewardWeight(), 1080, "Error: total reward weight does not reflect correct amount"
+            unwindingModule.totalRewardWeight(), 1100, "Error: total reward weight does not reflect correct amount"
         );
 
         vm.startPrank(alice);
@@ -392,7 +396,6 @@ contract UnwindingModuleUnitTest is LockingTestBase {
         }
         vm.stopPrank();
         uint256 startUnwindingTimestamp = block.timestamp;
-        advanceEpoch(1);
 
         assertEq(
             lockingController.globalRewardWeight(),
@@ -431,141 +434,5 @@ contract UnwindingModuleUnitTest is LockingTestBase {
 
         // 1000 principal + 100 rewards
         assertEq(iusd.balanceOf(alice), 1100, "Error: iUSD balance does not reflect correct amount after withdrawing");
-    }
-
-    function testClaimRewardsFromLCandWM() public {
-        _createPosition(alice, 1000, 10);
-        _createPosition(bob, 2000, 5);
-
-        vm.startPrank(alice);
-        {
-            MockERC20(lockingController.shareToken(10)).approve(address(gateway), 1000);
-            gateway.startUnwinding(1000, 10);
-        }
-        vm.stopPrank();
-        uint256 aliceUnwindingTimestamp = block.timestamp;
-
-        assertEq(unwindingModule.totalRewardWeight(), 0);
-
-        advanceEpoch(1);
-
-        assertEq(unwindingModule.totalRewardWeight(), 1200);
-
-        advanceEpoch(5);
-
-        assertEq(lockingController.globalRewardWeight(), 2200);
-        assertEq(unwindingModule.totalRewardWeight(), 1100);
-        assertEq(unwindingModule.balanceOf(alice, aliceUnwindingTimestamp), 1000);
-        assertEq(lockingController.balanceOf(bob), 2000);
-
-        _depositRewards(330);
-
-        assertEq(unwindingModule.balanceOf(alice, aliceUnwindingTimestamp), 1110); // +110
-        assertEq(lockingController.balanceOf(bob), 2220); // +220
-        assertEq(unwindingModule.totalRewardWeight(), 1100); // unchanged
-
-        vm.startPrank(bob);
-        {
-            MockERC20(lockingController.shareToken(5)).approve(address(gateway), 2000);
-            gateway.startUnwinding(2000, 5);
-        }
-        vm.stopPrank();
-        uint256 bobUnwindingTimestamp = block.timestamp;
-
-        assertEq(unwindingModule.totalRewardWeight(), 1100); // unchanged
-
-        // balances should be unchanged after bob starts unwinding
-        assertEq(unwindingModule.balanceOf(alice, aliceUnwindingTimestamp), 1110);
-        assertEq(unwindingModule.balanceOf(bob, bobUnwindingTimestamp), 2220);
-
-        // after starting to unwind, bob is not earning any rewards for the remaining
-        // of the epoch where they started to unwind.
-
-        _depositRewards(70);
-
-        assertEq(unwindingModule.balanceOf(alice, aliceUnwindingTimestamp), 1180); // +70
-        assertEq(unwindingModule.balanceOf(bob, bobUnwindingTimestamp), 2220); // +0
-
-        advanceEpoch(1);
-
-        // bob has 2220 tokens with a weight of *1.1 = 2442 at the start
-        // with the rounding loss correction, bob's reward weight is 2440
-        // every epoch, bob's reward weight decrease by (2440 - 2220) / 5 = 44
-        assertEq(unwindingModule.totalRewardWeight(), 1080 + 2440);
-
-        // after the epoch transition, bob is earning rewards again in the unwinding module
-
-        assertEq(unwindingModule.balanceOf(alice, aliceUnwindingTimestamp), 1180); // unchanged
-        assertEq(unwindingModule.balanceOf(bob, bobUnwindingTimestamp), 2220); // unchanged
-
-        _depositRewards(352);
-
-        assertEq(unwindingModule.balanceOf(alice, aliceUnwindingTimestamp), 1180 + 108); // +108
-        assertEq(unwindingModule.balanceOf(bob, bobUnwindingTimestamp), 2220 + 244); // +244
-
-        assertEq(unwindingModule.totalRewardWeight(), 1080 + 2440); // unchanged
-
-        // check future reward weight changes
-        advanceEpoch(1);
-        assertEq(unwindingModule.totalRewardWeight(), 1060 + 2396); // -20 for alice, -44 for bob
-        advanceEpoch(1);
-        assertEq(unwindingModule.totalRewardWeight(), 1040 + 2352); // -20 for alice, -44 for bob
-        advanceEpoch(1);
-        assertEq(unwindingModule.totalRewardWeight(), 1020 + 2308); // -20 for alice, -44 for bob
-        advanceEpoch(1);
-        assertEq(unwindingModule.totalRewardWeight(), 1000 + 2264); // -20 for alice, -44 for bob
-        advanceEpoch(1);
-        assertEq(unwindingModule.totalRewardWeight(), 1000 + 2220); // unchanged for alice, -44 for bob
-        advanceEpoch(1);
-        assertEq(unwindingModule.totalRewardWeight(), 1000 + 2220); // unchanged for alice & bob
-        advanceEpoch(1);
-        assertEq(unwindingModule.totalRewardWeight(), 1000 + 2220); // unchanged for alice & bob
-    }
-
-    function testCancelUnwindingNextEpoch() public {
-        // alice & bob lock for 10 weeks and start unwinding
-        _createPosition(alice, 1000e18, 10);
-        _createPosition(bob, 1000e18, 10);
-        uint256 startUnwindingTimestamp = block.timestamp;
-        vm.startPrank(alice);
-        {
-            address shareToken = lockingController.shareToken(10);
-            uint256 shareTokenBalance = MockERC20(shareToken).balanceOf(alice);
-            MockERC20(shareToken).approve(address(gateway), shareTokenBalance);
-            gateway.startUnwinding(shareTokenBalance, 10);
-        }
-        vm.stopPrank();
-        vm.startPrank(bob);
-        {
-            address shareToken = lockingController.shareToken(10);
-            uint256 shareTokenBalance = MockERC20(shareToken).balanceOf(bob);
-            MockERC20(shareToken).approve(address(gateway), shareTokenBalance);
-            gateway.startUnwinding(shareTokenBalance, 10);
-        }
-        vm.stopPrank();
-
-        // when they start unwinding, they won't earn any rewards until the next epoch
-        // but on next epoch, their reward weight is accounted in the unwindingModule
-        assertEq(unwindingModule.totalRewardWeight(), 0);
-        advanceEpoch(1);
-        assertEq(unwindingModule.totalRewardWeight(), 2400e18);
-
-        // alice cancels her unwinding
-        vm.startPrank(alice);
-        {
-            gateway.cancelUnwinding(startUnwindingTimestamp, 10);
-        }
-        vm.stopPrank();
-
-        // alice's reward weight is not accounted in the unwindingModule anymore
-        assertEq(unwindingModule.totalRewardWeight(), 1200e18);
-
-        // on the next epochs, the total reward weight should decrease
-        // by bob's unwinding reward weight decrease
-        advanceEpoch(1);
-        assertEq(unwindingModule.totalRewardWeight(), 1180e18);
-
-        advanceEpoch(1);
-        assertEq(unwindingModule.totalRewardWeight(), 1160e18);
     }
 }
