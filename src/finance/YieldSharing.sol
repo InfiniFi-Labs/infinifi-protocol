@@ -9,6 +9,7 @@ import {StakedToken} from "@tokens/StakedToken.sol";
 import {ReceiptToken} from "@tokens/ReceiptToken.sol";
 import {CoreControlled} from "@core/CoreControlled.sol";
 import {LockingController} from "@locking/LockingController.sol";
+import {FixedPriceOracle} from "@finance/oracles/FixedPriceOracle.sol";
 
 /// @notice InfiniFi YieldSharing contract
 /// @dev This contract is used to distribute yield between iUSD locking users and siUSD holders.
@@ -69,6 +70,13 @@ contract YieldSharing is CoreControlled {
     /// wil distribute additional rewards to the illiquid users until targetIlliquidRatio is reached.
     uint256 public targetIlliquidRatio; // default to 0
 
+    struct StakedReceiptTokenCache {
+        uint48 blockTimestamp;
+        uint208 amount;
+    }
+
+    StakedReceiptTokenCache public stakedReceiptTokenCache;
+
     constructor(address _core, address _accounting, address _receiptToken, address _stakedToken, address _lockingModule)
         CoreControlled(_core)
     {
@@ -93,7 +101,7 @@ contract YieldSharing is CoreControlled {
         external
         onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS)
     {
-        require(_percent < MAX_PERFORMANCE_FEE, PerformanceFeeTooHigh(_percent));
+        require(_percent <= MAX_PERFORMANCE_FEE, PerformanceFeeTooHigh(_percent));
         if (_percent > 0) {
             require(_recipient != address(0), PerformanceFeeRecipientIsZeroAddress(_recipient));
         }
@@ -142,14 +150,27 @@ contract YieldSharing is CoreControlled {
         emit YieldAccrued(block.timestamp, yield);
     }
 
+    function getCachedStakedReceiptTokens() public returns (uint256) {
+        StakedReceiptTokenCache memory data = stakedReceiptTokenCache;
+        if (uint256(data.blockTimestamp) == block.timestamp) {
+            return uint256(data.amount);
+        }
+        uint256 amount = ReceiptToken(receiptToken).balanceOf(stakedToken);
+        assert(amount <= type(uint208).max);
+
+        stakedReceiptTokenCache.blockTimestamp = uint48(block.timestamp);
+        stakedReceiptTokenCache.amount = uint208(amount);
+
+        return amount;
+    }
+
     /// @notice Yield sharing: split between iUSD lockin users & siUSD holders.
     /// If no users are locking or saving, the profit is minted on this contract and
     /// held idle so that the accrue() expected behavior of restoring protocol equity to 0
     /// is maintained. Funds minted on this contract in such a way can be unstuck by governance
     /// through the use of emergencyAction().
     function _handlePositiveYield(uint256 _positiveYield) internal {
-        uint256 stakedReceiptTokens =
-            ReceiptToken(receiptToken).balanceOf(stakedToken).mulWadDown(liquidReturnMultiplier);
+        uint256 stakedReceiptTokens = getCachedStakedReceiptTokens().mulWadDown(liquidReturnMultiplier);
         uint256 receiptTokenTotalSupply = ReceiptToken(receiptToken).totalSupply();
         uint256 targetIlliquidMinimum = receiptTokenTotalSupply.mulWadDown(targetIlliquidRatio);
         uint256 lockingReceiptTokens = LockingController(lockingModule).totalBalance();
@@ -162,14 +183,6 @@ contract YieldSharing is CoreControlled {
 
         // mint yield
         ReceiptToken(receiptToken).mint(address(this), _positiveYield);
-
-        // performance fee
-        uint256 _performanceFee = performanceFee;
-        if (_performanceFee > 0) {
-            uint256 fee = _positiveYield.mulWadDown(_performanceFee);
-            ReceiptToken(receiptToken).transfer(performanceFeeRecipient, fee);
-            _positiveYield -= fee;
-        }
 
         // fill safety buffer first
         uint256 _safetyBufferSize = safetyBufferSize;
@@ -184,6 +197,16 @@ contract YieldSharing is CoreControlled {
                     // do not do any further distribution and only replenish the safety buffer
                     return;
                 }
+            }
+        }
+
+        // performance fee
+        uint256 _performanceFee = performanceFee;
+        if (_performanceFee > 0) {
+            uint256 fee = _positiveYield.mulWadDown(_performanceFee);
+            if (fee > 0) {
+                ReceiptToken(receiptToken).transfer(performanceFeeRecipient, fee);
+                _positiveYield -= fee;
             }
         }
 
@@ -236,8 +259,9 @@ contract YieldSharing is CoreControlled {
 
         // lastly, apply losses to all iUSD in circulation
         uint256 totalSupply = ReceiptToken(receiptToken).totalSupply();
-        uint256 price = Accounting(accounting).price(receiptToken);
+        address oracle = Accounting(accounting).oracle(receiptToken);
+        uint256 price = FixedPriceOracle(oracle).price();
         uint256 newPrice = price.mulDivDown(totalSupply - _negativeYield, totalSupply);
-        Accounting(accounting).setPrice(receiptToken, newPrice);
+        FixedPriceOracle(oracle).setPrice(newPrice);
     }
 }

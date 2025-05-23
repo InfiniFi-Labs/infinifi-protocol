@@ -1,6 +1,7 @@
 @openzeppelin/=lib/openzeppelin-contracts/
 @forge-std/=lib/forge-std/src/
 @solmate/=lib/solmate/
+@cowprotocol/=lib/cowprotocol/src/
 @core/=src/core/
 @tokens/=src/tokens/
 @locking/=src/locking/

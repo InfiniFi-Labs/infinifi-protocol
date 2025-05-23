@@ -70,11 +70,6 @@ contract AaveV3FarmUnitTest is Fixture {
         assertEq(usdc.balanceOf(address(farm)), 0, "USDC balance should be 0");
     }
 
-    function testMaxDeposit() public view {
-        uint256 maxDeposit = farm.maxDeposit();
-        assertEq(maxDeposit, _AAVE_SUPPLY_CAP * 1e6, "Max deposit amount is not correct!");
-    }
-
     function testNoLiquidityAvailable() public {
         // deposit 500 USDC to the aave pool
         scenario_Deposit500USDCToAave();

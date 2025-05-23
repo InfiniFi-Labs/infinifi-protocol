@@ -8,6 +8,7 @@ import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 import {Farm} from "@integrations/Farm.sol";
 import {IOracle} from "@interfaces/IOracle.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
+import {Accounting} from "@finance/Accounting.sol";
 import {IMaturityFarm, IFarm} from "@interfaces/IMaturityFarm.sol";
 
 /// @title Swap Farm
@@ -23,11 +24,13 @@ contract SwapFarm is Farm, IMaturityFarm {
     error SwapCooldown();
     error RouterNotEnabled(address router);
 
+    event SetEnabledRouter(uint256 timestamp, address router, bool enabled);
+
     /// @notice Reference to the wrap token (to which assetTokens are swapped).
     address public immutable wrapToken;
 
-    /// @notice Reference to an oracle for the wrap token (for wrapToken <-> assetToken exchange rates).
-    address public immutable wrapTokenOracle;
+    /// @notice Reference to accounting contract.
+    address public immutable accounting;
 
     /// @notice Duration of the farm (maturity() returns block.timestamp + duration)
     /// @dev This can be set to 0, treating the farm as a liquid farm, however there will be
@@ -43,11 +46,11 @@ contract SwapFarm is Farm, IMaturityFarm {
     /// @notice cooldown period after a swap before another swap can be performed
     uint256 public constant _SWAP_COOLDOWN = 4 hours;
 
-    constructor(address _core, address _assetToken, address _wrapToken, address _wrapTokenOracle, uint256 _duration)
+    constructor(address _core, address _assetToken, address _wrapToken, address _accounting, uint256 _duration)
         Farm(_core, _assetToken)
     {
         wrapToken = _wrapToken;
-        wrapTokenOracle = _wrapTokenOracle;
+        accounting = _accounting;
         duration = _duration;
 
         // set default slippage tolerance to 99.5%
@@ -69,7 +72,7 @@ contract SwapFarm is Farm, IMaturityFarm {
     /// this is because deposit()s and withdraw()als in this farm are handled asynchronously,
     /// as they have to go through swaps which calldata has to be generated offchain.
     /// This farm therefore holds its reserve in 2 tokens, assetToken and wrapToken.
-    function assets() public view override(Farm, IFarm) returns (uint256) {
+    function assets() public view virtual override(Farm, IFarm) returns (uint256) {
         uint256 assetTokenBalance = IERC20(assetToken).balanceOf(address(this));
         uint256 wrapTokenAssetsValue = convertToAssets(IERC20(wrapToken).balanceOf(address(this)));
         return assetTokenBalance + wrapTokenAssetsValue;
@@ -84,6 +87,7 @@ contract SwapFarm is Farm, IMaturityFarm {
     /// keeper with FARM_SWAP_CALLER role.
     function setEnabledRouter(address _router, bool _enabled) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
         enabledRouters[_router] = _enabled;
+        emit SetEnabledRouter(block.timestamp, _router, _enabled);
     }
 
     /// @dev Deposit does nothing, assetTokens are just held on this farm.
@@ -100,8 +104,9 @@ contract SwapFarm is Farm, IMaturityFarm {
 
     /// @notice Converts a number of wrapTokens to assetTokens based on oracle rates.
     function convertToAssets(uint256 _wrapTokenAmount) public view returns (uint256) {
-        uint256 wrapTokenToAssetRate = IOracle(wrapTokenOracle).price();
-        return _wrapTokenAmount.divWadDown(wrapTokenToAssetRate);
+        uint256 assetTokenPrice = Accounting(accounting).price(assetToken);
+        uint256 wrapTokenPrice = Accounting(accounting).price(wrapToken);
+        return _wrapTokenAmount.mulDivDown(wrapTokenPrice, assetTokenPrice);
     }
 
     /// @notice Wraps assetTokens as wrapTokens.
@@ -128,7 +133,12 @@ contract SwapFarm is Farm, IMaturityFarm {
         uint256 minAssetsOut = _assetsIn.mulWadDown(maxSlippage);
         uint256 assetsReceived = convertToAssets(wrapTokenReceived);
         require(assetsReceived >= minAssetsOut, SlippageTooHigh(minAssetsOut, assetsReceived));
+
+        // optional hook to handle staking
+        _afterWrap(wrapTokenReceived);
     }
+
+    function _afterWrap(uint256 /*_wrapTokenReceived*/ ) internal virtual {}
 
     /// @notice Unwraps wrapTokens to assetTokens.
     /// @dev The transaction may be submitted privately to avoid sandwiching, and the function
@@ -143,6 +153,9 @@ contract SwapFarm is Farm, IMaturityFarm {
         lastSwap = block.timestamp;
         uint256 assetsBefore = IERC20(assetToken).balanceOf(address(this));
 
+        // optional hook to handle unstaking
+        _beforeUnwrap(_wrapTokenAmount);
+
         // do swap
         IERC20(wrapToken).forceApprove(_router, _wrapTokenAmount);
         (bool success, bytes memory returnData) = _router.call(_calldata);
@@ -153,4 +166,6 @@ contract SwapFarm is Farm, IMaturityFarm {
         uint256 minAssetsOut = convertToAssets(_wrapTokenAmount).mulWadDown(maxSlippage);
         require(assetsReceived >= minAssetsOut, SlippageTooHigh(minAssetsOut, assetsReceived));
     }
+
+    function _beforeUnwrap(uint256 /*_wrapTokenAmount*/ ) internal virtual {}
 }

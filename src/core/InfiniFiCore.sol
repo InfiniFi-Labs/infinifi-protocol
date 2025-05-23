@@ -21,6 +21,7 @@ contract InfiniFiCore is AccessControlEnumerable {
         _setRoleAdmin(CoreRoles.PAUSE, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.UNPAUSE, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.PROTOCOL_PARAMETERS, CoreRoles.GOVERNOR);
+        _setRoleAdmin(CoreRoles.MINOR_ROLES_MANAGER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.ENTRY_POINT, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.RECEIPT_TOKEN_MINTER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.RECEIPT_TOKEN_BURNER, CoreRoles.GOVERNOR);
@@ -29,6 +30,7 @@ contract InfiniFiCore is AccessControlEnumerable {
         _setRoleAdmin(CoreRoles.FARM_MANAGER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.MANUAL_REBALANCER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.PERIODIC_REBALANCER, CoreRoles.GOVERNOR);
+        _setRoleAdmin(CoreRoles.EMERGENCY_WITHDRAWAL, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.FARM_SWAP_CALLER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.ORACLE_MANAGER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.FINANCE_MANAGER, CoreRoles.GOVERNOR);

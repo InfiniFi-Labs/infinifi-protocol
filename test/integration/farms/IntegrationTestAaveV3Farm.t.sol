@@ -63,23 +63,6 @@ contract IntegrationTestAaveV3Farm is Fixture {
         assertGt(aaveV3Farm.assets(), 1_000e6, "Assets should have increased due to interest");
     }
 
-    function testMaxDeposit() public {
-        vm.prank(farmManagerAddress);
-        aaveV3Farm.deposit();
-
-        uint256 maxDeposit = aaveV3Farm.maxDeposit();
-        // because we set the farm cap to uint.max,
-        // the max deposit is the supply cap minus the total supplied to aave
-        uint256 maxDepositAtBlock = aaveV3USDCSupplyCap - aaveV3USDCTotalAToken - aaveV3USDCTreasuryAccrued;
-        assertEq(maxDeposit, maxDepositAtBlock, "Max deposit amount is not correct!");
-
-        // if we set the farm cap to 1500e6,
-        // the max deposit should be 500e6 because we already deposited 1000e6
-        vm.prank(parametersAddress);
-        aaveV3Farm.setCap(1_500e6);
-        assertEq(aaveV3Farm.maxDeposit(), 500e6, "Max deposit amount is not correct!");
-    }
-
     function testWithdraw() public {
         vm.startPrank(farmManagerAddress);
         aaveV3Farm.deposit();

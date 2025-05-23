@@ -8,6 +8,7 @@ import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 import {IOracle} from "@interfaces/IOracle.sol";
 import {ISYToken} from "@interfaces/pendle/ISYToken.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
+import {Accounting} from "@finance/Accounting.sol";
 import {Farm, IFarm} from "@integrations/Farm.sol";
 import {IPendleMarket} from "@interfaces/pendle/IPendleMarket.sol";
 import {IPendleOracle} from "@interfaces/pendle/IPendleOracle.sol";
@@ -34,18 +35,18 @@ contract PendleV2Farm is Farm, IMaturityFarm {
     address public immutable pendleOracle;
     uint32 private constant _PENDLE_ORACLE_TWAP_DURATION = 3600;
 
+    /// @notice Reference to the Pendle market's underlying token (the token into
+    /// which PTs convert at maturity).
+    address public immutable underlyingToken;
+
     /// @notice Reference to the Principal Token of the Pendle market.
     address public immutable ptToken;
 
     /// @notice Reference to the SY token of the Pendle market
     address public immutable syToken;
 
-    /// @notice Reference to the oracle for converting value of ptTokens to assetTokens.
-    /// @dev e.g. for ptToken = PT-sUSDE-29MAY2025 and assetToken = USDC,
-    /// this oracle returns the exchange rate of USDE (the underlying token) to USDC.
-    /// Since USDE has 18 decimals and USDC has 6, and the exchange rate is ~1:1,
-    /// the oracle should return a value ~= 1e6
-    address public immutable assetToPtUnderlyingOracle;
+    /// @notice Reference to the protocol accounting contract
+    address public immutable accounting;
 
     /// @notice address of the Pendle router used for swaps
     address public pendleRouter;
@@ -66,19 +67,17 @@ contract PendleV2Farm is Farm, IMaturityFarm {
     /// @notice Timestamp of the last wrapping
     uint256 private _lastWrappedTimestamp;
 
-    constructor(
-        address _core,
-        address _assetToken,
-        address _pendleMarket,
-        address _pendleOracle,
-        address _assetToPtUnderlyingOracle
-    ) Farm(_core, _assetToken) {
+    constructor(address _core, address _assetToken, address _pendleMarket, address _pendleOracle, address _accounting)
+        Farm(_core, _assetToken)
+    {
         pendleMarket = _pendleMarket;
         pendleOracle = _pendleOracle;
-        assetToPtUnderlyingOracle = _assetToPtUnderlyingOracle;
+        accounting = _accounting;
 
         // read contracts and keep some immutable variables to save gas
         (syToken, ptToken,) = IPendleMarket(_pendleMarket).readTokens();
+        (, underlyingToken,) = ISYToken(syToken).assetInfo();
+
         maturity = IPendleMarket(_pendleMarket).expiry();
 
         // set default slippage tolerance to 99.5%
@@ -187,31 +186,21 @@ contract PendleV2Farm is Farm, IMaturityFarm {
         require(block.timestamp < maturity, PTAlreadyMatured(maturity));
     }
 
-    /// @dev Return the max deposit amount for the underlying protocol
-    function _underlyingProtocolMaxDeposit() internal view override returns (uint256) {
-        // Get the cap for SY token
-        uint256 syDepositCap;
-        try ISYToken(syToken).getAbsoluteSupplyCap() returns (uint256 cap) {
-            // No need to check for getAbsoluteTotalSupply() when getAbsoluteSupplyCap() is implemented
-            syDepositCap = cap - ISYToken(syToken).getAbsoluteTotalSupply();
-        } catch {
-            // If the SYToken doesn't implement getAbsoluteSupplyCap, use max uint as default
-            return type(uint256).max;
-        }
-
-        // Convert the cap to PT token
-        uint256 ptDepositCap = syDepositCap.divWadDown(
-            IPendleOracle(pendleOracle).getPtToSyRate(pendleMarket, _PENDLE_ORACLE_TWAP_DURATION)
-        );
-
-        // Return the max deposit amount after converting PT to asset tokens
-        return _ptToAssets(ptDepositCap);
-    }
-
     /// @dev Withdrawal can only handle the held assetTokens (i.e. the liquidity()).
     /// @dev See call to unwrapPtToAsset() for the actual swap out of Pendle PTs.
     function _withdraw(uint256 _amount, address _to) internal override {
         IERC20(assetToken).safeTransfer(_to, _amount);
+    }
+
+    /// @dev e.g. for ptToken = PT-sUSDE-29MAY2025 and assetToken = USDC,
+    /// this oracle returns the exchange rate of USDE (the underlying token) to USDC.
+    /// Since USDE has 18 decimals and USDC has 6, and the exchange rate is ~1:1,
+    /// the oracle should return a value ~= 1e6 because the USDC oracle returns 1e30
+    /// and the USDE oracle returns 1e18.
+    function _assetToPtUnderlyingRate() internal view returns (uint256) {
+        uint256 assetPrice = Accounting(accounting).price(assetToken);
+        uint256 underlyingPrice = Accounting(accounting).price(underlyingToken);
+        return underlyingPrice.divWadDown(assetPrice);
     }
 
     /// @notice Converts a number of PTs to assetTokens based on oracle rates.
@@ -219,10 +208,9 @@ contract PendleV2Farm is Farm, IMaturityFarm {
         // read oracles
         uint256 ptToUnderlyingRate =
             IPendleOracle(pendleOracle).getPtToAssetRate(pendleMarket, _PENDLE_ORACLE_TWAP_DURATION);
-        uint256 assetToPtUnderlyingRate = IOracle(assetToPtUnderlyingOracle).price();
         // convert
         uint256 ptUnderlying = _ptAmount.mulWadDown(ptToUnderlyingRate);
-        return ptUnderlying.mulWadDown(assetToPtUnderlyingRate);
+        return ptUnderlying.mulWadDown(_assetToPtUnderlyingRate());
     }
 
     /// @notice Computes the yield to interpolate from the last deposit to maturity.
@@ -237,21 +225,24 @@ contract PendleV2Farm is Farm, IMaturityFarm {
         // we want to interpolate the yield from the current time to maturity
         // to do that, we first need to compute how much USDC we should be able to get once maturity is reached
         // at maturity, 1 PT is worth 1 underlying PT asset (e.g. USDE)
-        // so we can compute the amount of assets (eg USDC) we should get at maturity by using the assetToPtUnderlyingOracle
-        // in this example, assetToPtUnderlyingOracle gives the price of USDE in USDC. probably close to 1:1
-        uint256 assetToPtUnderlyingRate = IOracle(assetToPtUnderlyingOracle).price();
-        uint256 maturityAssetAmount = balanceOfPTs.mulWadDown(assetToPtUnderlyingRate);
+        // so we can compute the amount of assets (eg USDC) we should get at maturity by using the assetToPtUnderlyingRate
+        // in this example, assetToPtUnderlyingRate gives the price of USDE in USDC. probably close to 1:1
+        uint256 maturityAssetAmount = balanceOfPTs.mulWadDown(_assetToPtUnderlyingRate());
         // account for slippage, because unwrapping PTs => assets will cause some slippage using pendle's AMM
         maturityAssetAmount = maturityAssetAmount.mulWadDown(maxSlippage);
 
         // compute the yield to interpolate, which is the target amount (maturityAssetAmount) minus the amount of assets wrapped
         // minus the already interpolated yield (can be != 0 if we made multiple wraps)
-        uint256 totalYieldRemainingToInterpolate = maturityAssetAmount - totalWrappedAssets - _alreadyInterpolatedYield;
+        int256 totalYieldRemainingToInterpolate =
+            int256(maturityAssetAmount) - int256(totalWrappedAssets) - int256(_alreadyInterpolatedYield);
+
+        // in case the rate moved against us, we return the already interpolated yield
+        if (totalYieldRemainingToInterpolate < 0) return _alreadyInterpolatedYield;
 
         // cannot underflow because _lastWrappedTimestamp cannot be after maturity as we cannot wrap after maturity
         // and _lastWrappedTimestamp is always > 0 otherwise the first line of this function would have returned 0
         uint256 yieldPerSecond =
-            totalYieldRemainingToInterpolate * FixedPointMathLib.WAD / (maturity - _lastWrappedTimestamp);
+            uint256(totalYieldRemainingToInterpolate) * FixedPointMathLib.WAD / (maturity - _lastWrappedTimestamp);
         uint256 secondsSinceLastWrap = block.timestamp - _lastWrappedTimestamp;
         uint256 interpolatedYield = yieldPerSecond * secondsSinceLastWrap;
         return _alreadyInterpolatedYield + interpolatedYield / FixedPointMathLib.WAD;

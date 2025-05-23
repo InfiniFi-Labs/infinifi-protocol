@@ -42,8 +42,9 @@ contract UnwindingModule is CoreControlled {
     event UnwindingCanceled(
         uint256 indexed timestamp, address user, uint256 startUnwindingTimestamp, uint32 newUnwindingEpochs
     );
-    event Withdrawal(uint256 indexed timestamp, uint256 startUnwindingTimestamp, address owner);
+    event Withdrawal(uint256 indexed timestamp, uint256 startUnwindingTimestamp, address user);
     event GlobalPointUpdated(uint256 indexed timestamp, GlobalPoint);
+    event CriticalLoss(uint256 indexed timestamp, uint256 amount);
 
     /// @notice address of the receipt token
     address public immutable receiptToken;
@@ -99,11 +100,16 @@ contract UnwindingModule is CoreControlled {
     /// @notice returns the current reward weight
     function totalRewardWeight() external view returns (uint256) {
         GlobalPoint memory point = _getLastGlobalPoint();
-        return point.totalRewardWeight.mulWadDown(slashIndex);
+        return point.totalRewardWeight.mulWadUp(slashIndex);
     }
 
     /// @notice returns the balance of a user
-    function balanceOf(address _user, uint256 _startUnwindingTimestamp) public view returns (uint256) {
+    function balanceOf(address _user, uint256 _startUnwindingTimestamp) external view returns (uint256) {
+        return _sharesToAmount(_userShares(_user, _startUnwindingTimestamp));
+    }
+
+    /// @notice returns number of share of a user
+    function _userShares(address _user, uint256 _startUnwindingTimestamp) internal view returns (uint256) {
         UnwindingPosition memory position = positions[_unwindingId(_user, _startUnwindingTimestamp)];
         if (position.fromEpoch == 0) return 0;
 
@@ -122,7 +128,7 @@ contract UnwindingModule is CoreControlled {
             // add shares to the user for their earned rewards
             // note that the userRewardWeight is not increased proportionally to the rewards
             // received, which means that rewards are not compounding during unwinding.
-            if (epoch > position.fromEpoch - 1) {
+            if (epoch >= position.fromEpoch) {
                 // do not distribute rewards at the epoch where the user started unwinding,
                 // because the global reward weight is not updated yet and the user should not
                 // earn rewards before the start of their unwinding period (and the start of their
@@ -149,7 +155,22 @@ contract UnwindingModule is CoreControlled {
             }
         }
 
-        return _sharesToAmount(userShares);
+        return userShares;
+    }
+
+    /// @notice returns the reward weight of a user
+    function rewardWeight(address _user, uint256 _startUnwindingTimestamp) public view returns (uint256) {
+        UnwindingPosition memory position = positions[_unwindingId(_user, _startUnwindingTimestamp)];
+        if (position.fromEpoch == 0) return 0;
+
+        uint256 userRewardWeight = position.fromRewardWeight;
+        uint256 currentEpoch = block.timestamp.epoch();
+        if (currentEpoch < position.fromEpoch) return 0;
+        for (uint32 epoch = position.fromEpoch + 1; epoch <= currentEpoch && epoch <= position.toEpoch; epoch++) {
+            userRewardWeight -= position.rewardWeightDecrease;
+        }
+
+        return userRewardWeight.mulWadDown(slashIndex);
     }
 
     /// ----------------------------------------------------------------------------
@@ -164,12 +185,12 @@ contract UnwindingModule is CoreControlled {
         bytes32 id = _unwindingId(_user, block.timestamp);
         require(positions[id].fromEpoch == 0, UserUnwindingInprogress());
 
-        uint256 rewardWeight = _rewardWeight.divWadDown(slashIndex);
+        uint256 userRewardWeight = _rewardWeight.divWadDown(slashIndex);
         uint256 targetRewardWeight = _receiptTokens.divWadDown(slashIndex);
-        uint256 totalDecrease = rewardWeight - targetRewardWeight;
+        uint256 totalDecrease = userRewardWeight - targetRewardWeight;
         uint256 rewardWeightDecrease = totalDecrease / uint256(_unwindingEpochs);
         uint256 roundingLoss = totalDecrease - (rewardWeightDecrease * uint256(_unwindingEpochs));
-        rewardWeight -= roundingLoss;
+        userRewardWeight -= roundingLoss;
 
         uint32 nextEpoch = uint32(block.timestamp.nextEpoch());
         uint32 endEpoch = nextEpoch + _unwindingEpochs;
@@ -179,7 +200,7 @@ contract UnwindingModule is CoreControlled {
                 shares: newShares,
                 fromEpoch: nextEpoch,
                 toEpoch: endEpoch,
-                fromRewardWeight: rewardWeight,
+                fromRewardWeight: userRewardWeight,
                 rewardWeightDecrease: rewardWeightDecrease
             });
             totalShares += newShares;
@@ -188,10 +209,10 @@ contract UnwindingModule is CoreControlled {
 
         GlobalPoint memory point = _getLastGlobalPoint();
         _updateGlobalPoint(point);
-        rewardWeightBiasIncreases[uint32(block.timestamp.epoch())] += rewardWeight;
+        rewardWeightBiasIncreases[uint32(block.timestamp.epoch())] += userRewardWeight;
         rewardWeightDecreases[nextEpoch] += rewardWeightDecrease;
         rewardWeightIncreases[endEpoch] += rewardWeightDecrease;
-        emit UnwindingStarted(block.timestamp, _user, _receiptTokens, _unwindingEpochs, _rewardWeight);
+        emit UnwindingStarted(block.timestamp, _user, _receiptTokens, _unwindingEpochs, userRewardWeight);
     }
 
     /// @notice Cancel an ongoing unwinding
@@ -205,7 +226,8 @@ contract UnwindingModule is CoreControlled {
         require(position.toEpoch > 0 && currentEpoch < position.toEpoch, UserNotUnwinding());
         require(currentEpoch >= position.fromEpoch, UserUnwindingNotStarted());
 
-        uint256 userBalance = balanceOf(_user, _startUnwindingTimestamp);
+        uint256 userShares = _userShares(_user, _startUnwindingTimestamp);
+        uint256 userBalance = _sharesToAmount(userShares);
         uint256 elapsedEpochs = currentEpoch - position.fromEpoch;
         uint256 userRewardWeight = position.fromRewardWeight - elapsedEpochs * position.rewardWeightDecrease;
 
@@ -221,6 +243,8 @@ contract UnwindingModule is CoreControlled {
                 // if cancelling unwinding after the first epoch, we correct the global point's slope
                 point.totalRewardWeightDecrease -= position.rewardWeightDecrease;
             }
+            uint256 rewardSharesToDecrement = point.rewardShares.mulDivDown(userRewardWeight, point.totalRewardWeight);
+            point.rewardShares -= rewardSharesToDecrement;
             point.totalRewardWeight -= userRewardWeight;
             _updateGlobalPoint(point);
             // cancel slope change that would have happened at the end of unwinding
@@ -228,7 +252,7 @@ contract UnwindingModule is CoreControlled {
 
             delete positions[id];
 
-            totalShares -= position.shares;
+            totalShares -= userShares;
             totalReceiptTokens -= userBalance;
         }
 
@@ -250,16 +274,19 @@ contract UnwindingModule is CoreControlled {
         require(position.toEpoch > 0, UserNotUnwinding());
         require(currentEpoch >= position.toEpoch, UserUnwindingInprogress());
 
-        uint256 userBalance = balanceOf(_owner, _startUnwindingTimestamp);
+        uint256 userShares = _userShares(_owner, _startUnwindingTimestamp);
+        uint256 userBalance = _sharesToAmount(userShares);
         uint256 userRewardWeight =
             position.fromRewardWeight - (position.toEpoch - position.fromEpoch) * position.rewardWeightDecrease;
         delete positions[id];
 
         GlobalPoint memory point = _getLastGlobalPoint();
+        uint256 rewardSharesToDecrement = point.rewardShares.mulDivDown(userRewardWeight, point.totalRewardWeight);
+        point.rewardShares -= rewardSharesToDecrement;
         point.totalRewardWeight -= userRewardWeight;
         _updateGlobalPoint(point);
 
-        totalShares -= position.shares;
+        totalShares -= userShares;
         totalReceiptTokens -= userBalance;
 
         require(IERC20(receiptToken).transfer(_owner, userBalance), TransferFailed());
@@ -326,11 +353,18 @@ contract UnwindingModule is CoreControlled {
     function applyLosses(uint256 _amount) external onlyCoreRole(CoreRoles.LOCKED_TOKEN_MANAGER) {
         if (_amount == 0) return;
 
+        // protect against underflow
+        if (_amount > totalReceiptTokens) {
+            _amount = totalReceiptTokens;
+            emit CriticalLoss(block.timestamp, _amount);
+        }
+
         uint256 _totalReceiptTokens = totalReceiptTokens;
 
         ERC20Burnable(receiptToken).burn(_amount);
 
         slashIndex = slashIndex.mulDivDown(_totalReceiptTokens - _amount, _totalReceiptTokens);
+
         totalReceiptTokens = _totalReceiptTokens - _amount;
     }
 }

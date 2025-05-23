@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
 import {IFarm} from "@interfaces/IFarm.sol";
@@ -17,12 +18,16 @@ contract BeforeRedeemHook is IBeforeRedeemHook, CoreControlled {
 
     error AssetNotEnabled(address _asset);
 
-    address public accounting;
-    address public allocationVoting;
+    address public immutable accounting;
+    address public immutable allocationVoting;
+    address public immutable mintController;
 
-    constructor(address _core, address _accounting, address _allocationVoting) CoreControlled(_core) {
+    constructor(address _core, address _accounting, address _allocationVoting, address _mintController)
+        CoreControlled(_core)
+    {
         accounting = _accounting;
         allocationVoting = _allocationVoting;
+        mintController = _mintController;
     }
 
     /// @notice returns leftover amount to be redeemed if the amount is greater than the total assets
@@ -38,8 +43,11 @@ contract BeforeRedeemHook is IBeforeRedeemHook, CoreControlled {
         address _asset = IFarm(msg.sender).assetToken();
         bool assetEnabled = FarmRegistry(Accounting(accounting).farmRegistry()).isAssetEnabled(_asset);
         require(assetEnabled, AssetNotEnabled(_asset));
-        uint256 totalAssets = Accounting(accounting).totalAssetsOf(_asset, FarmTypes.LIQUID);
 
+        _assetAmountOut = _processMintController(_assetAmountOut);
+        if (_assetAmountOut == 0) return;
+
+        uint256 totalAssets = Accounting(accounting).totalAssetsOf(_asset, FarmTypes.LIQUID);
         // No assets available
         if (totalAssets == 0) return;
 
@@ -83,7 +91,9 @@ contract BeforeRedeemHook is IBeforeRedeemHook, CoreControlled {
 
         for (uint256 index = 0; index < _farms.length; ++index) {
             address farm = _farms[index];
-            uint256 farmBalance = IFarm(farm).assets();
+            if (Pausable(farm).paused()) continue;
+
+            uint256 farmBalance = IFarm(farm).liquidity();
 
             if (farmBalance < _amount) {
                 // Indicates that the farm has less liquidity than the amount to redeem
@@ -107,14 +117,35 @@ contract BeforeRedeemHook is IBeforeRedeemHook, CoreControlled {
 
     /// @notice process a proportional redeem from all farms
     /// @dev doesn't help with the allocation, but it's a good fallback
+    /// @dev doesn't check if the farm is paused and is expected to revert if it is, users can always opt to redeem less.
     function _processProportionalRedeem(address[] memory _farms, uint256 _totalAssets, uint256 _amount) internal {
         for (uint256 i = 0; i < _farms.length; i++) {
             uint256 farmBalance = IFarm(_farms[i]).assets();
             uint256 assetsOut = _amount.mulDivUp(farmBalance, _totalAssets);
+
             if (assetsOut > 0) {
                 IFarm(_farms[i]).withdraw(assetsOut, msg.sender);
             }
         }
         IFarm(msg.sender).deposit();
+    }
+
+    function _processMintController(uint256 _assetAmountOut) internal returns (uint256) {
+        address _mintController = mintController;
+        if (_mintController == address(0)) return _assetAmountOut;
+
+        uint256 liquidity = IFarm(_mintController).liquidity();
+        if (liquidity == 0) return _assetAmountOut;
+
+        // in case mint controller can only partially cover the amount to redeem
+        // we redeem from the mint controller and return the difference
+        if (_assetAmountOut > liquidity) {
+            IFarm(_mintController).withdraw(liquidity, msg.sender);
+            return _assetAmountOut - liquidity;
+        }
+
+        IFarm(_mintController).withdraw(_assetAmountOut, msg.sender);
+        IFarm(msg.sender).deposit();
+        return 0;
     }
 }

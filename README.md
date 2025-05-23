@@ -1,3 +1,5 @@
+# InfiniFi Protocol Audit
+
 ## Overview
 
 InfiniFi is a DeFi protocol that enables users to mint and redeem receipt tokens (iUSD, iETH) against collateral assets (USDC, ETH). The protocol features a sophisticated yield generation system through multiple farm integrations, a locking mechanism for enhanced rewards, and a governance system for farm allocation voting.
@@ -127,8 +129,17 @@ make test-unit
 make coverage
 ```
 
-## Granted per request
+## Audit Scope
 
-- Protocol Documentation
-- Technical Specification
-- Test Coverage Report
+The audit should focus on:
+1. Smart contract security
+2. Internal accounting and profit distributions
+3. Access control implementation
+4. Asset movements within the system and going in/out
+5. Integration of 3rd party protocols
+
+## Additional Resources
+
+- Protocol Documentation: https://infinifilabs.atlassian.net/wiki/spaces/InfiniFi/pages/207814657/Architecture
+- Technical Specification: https://www.notion.so/Audit-1a544c414f36809dbd0bd71087ee567e?pvs=13
+- Test Coverage Report: https://github.com/InfiniFi-Labs/infinifi-contracts/actions/runs/13631904087

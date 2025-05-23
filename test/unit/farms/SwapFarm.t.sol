@@ -13,15 +13,19 @@ import {FixedPriceOracle} from "@finance/oracles/FixedPriceOracle.sol";
 
 contract SwapFarmUnitTest is Fixture {
     SwapFarm farm;
-    FixedPriceOracle wrapTokenOracle;
     MockERC20 wrapToken = new MockERC20("WRAP_TOKEN", "WT");
     MockSwapRouter router = new MockSwapRouter();
 
     function setUp() public override {
         super.setUp();
 
-        wrapTokenOracle = new FixedPriceOracle(address(core), 0.5e30); // 1 wrapped token = 2 USDC
-        farm = new SwapFarm(address(core), address(usdc), address(wrapToken), address(wrapTokenOracle), 30 days);
+        vm.startPrank(oracleManagerAddress);
+        {
+            accounting.setOracle(address(usdc), address(new FixedPriceOracle(address(core), 1e30)));
+            accounting.setOracle(address(wrapToken), address(new FixedPriceOracle(address(core), 2e18)));
+        }
+        vm.stopPrank();
+        farm = new SwapFarm(address(core), address(usdc), address(wrapToken), address(accounting), 30 days);
 
         vm.label(address(farm), "SwapFarm");
         vm.label(address(router), "MockSwapRouter");
@@ -32,9 +36,7 @@ contract SwapFarmUnitTest is Fixture {
 
     function testInitialState() public view {
         assertEq(
-            farm.wrapTokenOracle(),
-            address(wrapTokenOracle),
-            "Error: SwapFarm's wrapTokenOracle does not reflect correct address"
+            farm.accounting(), address(accounting), "Error: SwapFarm's accounting does not reflect correct address"
         );
         assertEq(farm.assets(), 0, "Error: SwapFarm's assets should be 0");
         assertEq(farm.maturity(), block.timestamp + 30 days, "Error: SwapFarm's maturity is not set correctly");
@@ -54,11 +56,7 @@ contract SwapFarmUnitTest is Fixture {
 
         // if we add some wrapped tokens, the liquidity should be the same, but assets should be higher
         wrapToken.mint(address(farm), 1000e18);
-        assertEq(
-            farm.assets(),
-            1000e6 + (1000e18 * 1e18 / wrapTokenOracle.price()),
-            "Error: SwapFarm's assets does not reflect correct price from oracle"
-        );
+        assertEq(farm.assets(), 1000e6 + 2000e6, "Error: SwapFarm's assets does not reflect correct price from oracle");
         assertEq(farm.liquidity(), 1000e6, "Error: SwapFarm's liquidity should increase after adding wrapped tokens");
     }
 
@@ -93,7 +91,7 @@ contract SwapFarmUnitTest is Fixture {
         // convertToAssets should return the correct amount of assets
         assertEq(
             farm.convertToAssets(_wrapTokenAmount),
-            _wrapTokenAmount * 1e18 / wrapTokenOracle.price(),
+            _wrapTokenAmount * 2 / 1e12,
             "Error: SwapFarm's convertToAssets does not return correct amount of assets"
         );
     }
@@ -119,7 +117,7 @@ contract SwapFarmUnitTest is Fixture {
         // give 1000 usdc to the farm
         usdc.mint(address(farm), 1000e6);
 
-        uint256 assetReceived = 10e18 * 1e18 / wrapTokenOracle.price();
+        uint256 assetReceived = 20e6;
         uint256 minAssetsOut = 1000e6 * 0.995e18 / 1e18;
         // we expect the swap to revert because the slippage is too high
         vm.expectRevert(abi.encodeWithSelector(Farm.SlippageTooHigh.selector, minAssetsOut, assetReceived));
@@ -142,7 +140,7 @@ contract SwapFarmUnitTest is Fixture {
     function testWrapAssets() public {
         uint256 wrapTokenAmount = 499e18;
         scenarioWrapAssets(1000e6, wrapTokenAmount);
-        assertEq(farm.assets(), wrapTokenAmount * 1e18 / wrapTokenOracle.price());
+        assertEq(farm.assets(), wrapTokenAmount * 2 / 1e12);
     }
 
     function testWrapAssetsRevertsIfInSwapCooldown() public {
@@ -187,7 +185,7 @@ contract SwapFarmUnitTest is Fixture {
         router.mockPrepareSwap(address(wrapToken), address(usdc), 500e18, 10e6);
 
         uint256 assetsReceived = 10e6;
-        uint256 minAssetsOut = 500e18 * 1e18 / wrapTokenOracle.price() * 0.995e18 / 1e18;
+        uint256 minAssetsOut = (500e18 * 2 / 1e12) * 0.995e18 / 1e18;
         vm.prank(msig);
         vm.expectRevert(abi.encodeWithSelector(Farm.SlippageTooHigh.selector, minAssetsOut, assetsReceived));
         farm.unwrapAssets(500e18, address(router), abi.encodeWithSelector(MockSwapRouter.swap.selector));

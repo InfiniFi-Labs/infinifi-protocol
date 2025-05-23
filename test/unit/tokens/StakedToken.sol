@@ -4,6 +4,8 @@ pragma solidity 0.8.28;
 import {console} from "@forge-std/console.sol";
 import {Fixture} from "@test/Fixture.t.sol";
 import {EpochLib} from "@libraries/EpochLib.sol";
+import {MockERC20} from "@test/mock/MockERC20.sol";
+import {MockSwapRouter} from "@test/mock/MockSwapRouter.sol";
 
 contract StakedTokenUnitTest is Fixture {
     using EpochLib for uint256;
@@ -201,6 +203,10 @@ contract StakedTokenUnitTest is Fixture {
         assertEq(siusd.maxRedeem(carol), carolShares);
         assertEq(siusd.maxMint(carol), type(uint256).max);
         assertEq(siusd.maxWithdraw(carol), carolAssets);
+    }
+
+    function testMaxGettersPaused() public {
+        testMaxGetters();
 
         vm.prank(guardianAddress);
         siusd.pause();
@@ -209,5 +215,40 @@ contract StakedTokenUnitTest is Fixture {
         assertEq(siusd.maxRedeem(carol), 0);
         assertEq(siusd.maxMint(carol), 0);
         assertEq(siusd.maxWithdraw(carol), 0);
+    }
+
+    function testMaxGettersUnaccruedLosses() public {
+        testMaxGetters();
+
+        yieldSharing.accrue();
+        vm.prank(address(mintController));
+        usdc.transfer(address(1), 100e6); // 100$ loss
+
+        assertEq(siusd.maxDeposit(carol), type(uint256).max);
+        assertEq(siusd.maxRedeem(carol), 0);
+        assertEq(siusd.maxMint(carol), type(uint256).max);
+        assertEq(siusd.maxWithdraw(carol), 0);
+    }
+
+    function testZapInAndStake() public {
+        MockSwapRouter router = new MockSwapRouter();
+        MockERC20 weth = new MockERC20("Wrapped Ether", "WETH");
+
+        vm.prank(parametersAddress);
+        gateway.setEnabledRouter(address(router), true);
+
+        router.mockPrepareSwap(address(weth), address(usdc), 1 ether, 2000e6);
+        weth.mint(carol, 1 ether);
+
+        vm.startPrank(carol);
+        {
+            weth.approve(address(gateway), 1 ether);
+            gateway.zapInAndStake(
+                address(weth), 1 ether, address(router), abi.encodeWithSelector(MockSwapRouter.swap.selector), carol
+            );
+        }
+        vm.stopPrank();
+
+        assertEq(siusd.balanceOf(carol), 2000e18);
     }
 }

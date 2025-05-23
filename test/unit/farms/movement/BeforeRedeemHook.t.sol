@@ -7,7 +7,7 @@ import {MockPartialFarm} from "@test/mock/MockPartialFarm.sol";
 import {BeforeRedeemHook} from "@integrations/farms/movement/BeforeRedeemHook.sol";
 
 contract BeforeRedeemHookTest is BaseHookTest, BeforeRedeemHook {
-    constructor() BeforeRedeemHook(address(this), address(this), address(this)) {}
+    constructor() BeforeRedeemHook(address(this), address(this), address(this), address(0)) {}
 
     function withdraw(uint256 _amount, address _to) public onlyCoreRole(CoreRoles.FARM_MANAGER) {
         MockPartialFarm(_to).directDeposit(_amount);
@@ -242,5 +242,35 @@ contract BeforeRedeemHookTest is BaseHookTest, BeforeRedeemHook {
             controllerFarm.callRedeemHook(this, amount);
         }
         assertEq(totalAssetsOf(address(0), 0), 100 ether, "Total liquid assets should be 100 ether after redeeming");
+    }
+
+    function testBeforeRedeemPausedFarm()
+        public
+        configureFarms(20 ether, 40 ether, 40 ether)
+        setWeights(60, 20, 20)
+        setAmount(10 ether)
+    {
+        address farm = _findOptimalRedeemFarm(farms, weights, _getTotalPower(), _getTotalAssets(), amount);
+        assertEq(farm, address(farm2), "Optimal farm should be farm 2 with 20% weight");
+
+        farm2.pause();
+
+        farm = _findOptimalRedeemFarm(farms, weights, _getTotalPower(), _getTotalAssets(), amount);
+        assertNotEq(farm, address(farm2), "Pausing the farm should exclude it");
+    }
+
+    // Prove that farm will not be skipped for proportional redeem
+    // This is intentional!
+    function testBeforeRedeemProportionalPausedFarm()
+        public
+        configureFarms(50 ether, 50 ether, 50 ether)
+        setWeights(50, 25, 25)
+        setAmount(60 ether)
+    {
+        farm1.pause();
+
+        // we should only have 50 + 20 + 20 = 90 ether remaining
+        controllerFarm.callRedeemHook(this, amount);
+        assertEq(totalAssetsOf(address(0), 0), 90 ether, "Total liquid assets should be 90 ether after redeeming");
     }
 }

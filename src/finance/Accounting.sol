@@ -38,12 +38,6 @@ contract Accounting is CoreControlled {
         emit OracleSet(block.timestamp, _asset, _oracle);
     }
 
-    /// @notice set the price of an asset
-    function setPrice(address _asset, uint256 _price) external onlyCoreRole(CoreRoles.ORACLE_MANAGER) {
-        FixedPriceOracle(oracle[_asset]).setPrice(_price);
-        emit PriceSet(block.timestamp, _asset, _price);
-    }
-
     /// -------------------------------------------------------------------------------------------
     /// Reference token getters (e.g. USD for iUSD, ETH for iETH, ...)
     /// @dev note that the "USD" token does not exist, it is just an abstract unit of account

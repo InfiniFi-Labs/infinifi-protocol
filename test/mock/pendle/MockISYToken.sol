@@ -27,4 +27,8 @@ contract MockISYToken is MockERC20, ISYToken {
     function setAbsoluteTotalSupply(uint256 _absoluteTotalSupply) external {
         absoluteTotalSupply = _absoluteTotalSupply;
     }
+
+    function assetInfo() external view returns (uint8 assetType, address assetAddress, uint8 assetDecimals) {
+        return (0, address(this), 18);
+    }
 }

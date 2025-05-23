@@ -7,6 +7,7 @@ import {IBeforeRedeemHook} from "@interfaces/IRedeemController.sol";
 contract MockPartialFarm {
     uint256 public assets;
     address public assetToken = address(0);
+    bool public paused = false;
 
     function test() public pure virtual {}
 
@@ -14,7 +15,23 @@ contract MockPartialFarm {
         assets = _assets;
     }
 
+    function liquidity() external view returns (uint256) {
+        return assets;
+    }
+
+    function pause() external {
+        paused = true;
+    }
+
+    function unpause() external {
+        paused = false;
+    }
+
     function deposit() external {} // noop
+
+    function maxDeposit() external pure returns (uint256) {
+        return type(uint256).max;
+    }
 
     function setAsset(address _newAsset) external {
         assetToken = _newAsset;

@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
+
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {StakedToken} from "@tokens/StakedToken.sol";
@@ -16,8 +19,9 @@ import {LockedPositionToken} from "@tokens/LockedPositionToken.sol";
 import {YieldSharing} from "@finance/YieldSharing.sol";
 
 /// @notice Gateway to interact with the InfiniFi protocol
-contract InfiniFiGatewayV1 is CoreControlled {
+contract InfiniFiGatewayV1 is CoreControlled, ReentrancyGuardTransient {
     using SafeERC20 for ERC20;
+    using FixedPointMathLib for uint256;
 
     /// @notice error thrown when there are pending losses unapplied
     /// if you observe this error as a user, call YieldSharing.accrue() before
@@ -26,11 +30,23 @@ contract InfiniFiGatewayV1 is CoreControlled {
 
     /// @notice error thrown when a swap fails
     error SwapFailed();
+    error InvalidZapFee();
+    error InvalidZapRouter();
+    error MinAssetsOutError(uint256 min, uint256 actual);
 
     event AddressSet(uint256 timestamp, string indexed name, address _address);
+    event ZapFeeSet(uint256 timestamp, uint256 zapFee);
+    event ZapIn(uint256 timestamp, address indexed user, address indexed token, uint256 amount, uint256 receiptTokens);
+    event SetEnabledRouter(uint256 timestamp, address router, bool enabled);
 
     /// @notice address registry of the gateway
     mapping(bytes32 => address) public addresses;
+
+    /// @notice Mapping of routers that can be used to zap
+    mapping(address => bool) public enabledRouters;
+
+    /// @notice fee charged for zaps, as a percentage with 18 decimals
+    uint256 public zapFee;
 
     constructor() CoreControlled(address(1)) {}
 
@@ -55,11 +71,24 @@ contract InfiniFiGatewayV1 is CoreControlled {
         return addresses[keccak256(abi.encode(_name))];
     }
 
+    /// @notice manage the whitelist of routers to be used by the zap functions
+    function setEnabledRouter(address _router, bool _enabled) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
+        enabledRouters[_router] = _enabled;
+        emit SetEnabledRouter(block.timestamp, _router, _enabled);
+    }
+
+    /// @notice set the fee charged for zaps
+    function setZapFee(uint256 _zapFee) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
+        require(_zapFee <= 0.01e18, InvalidZapFee()); // cannot set to more than 1%
+        zapFee = _zapFee;
+        emit ZapFeeSet(block.timestamp, _zapFee);
+    }
+
     /// -------------------------------------------------------------------------------------
     /// User interactions
     /// -------------------------------------------------------------------------------------
 
-    function mint(address _to, uint256 _amount) external whenNotPaused returns (uint256) {
+    function mint(address _to, uint256 _amount) external whenNotPaused nonReentrant returns (uint256) {
         ERC20 usdc = ERC20(getAddress("USDC"));
         MintController mintController = MintController(getAddress("mintController"));
 
@@ -68,7 +97,7 @@ contract InfiniFiGatewayV1 is CoreControlled {
         return mintController.mint(_to, _amount);
     }
 
-    function mintAndStake(address _to, uint256 _amount) external whenNotPaused returns (uint256) {
+    function mintAndStake(address _to, uint256 _amount) external whenNotPaused nonReentrant returns (uint256) {
         MintController mintController = MintController(getAddress("mintController"));
         StakedToken siusd = StakedToken(getAddress("stakedToken"));
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
@@ -83,15 +112,13 @@ contract InfiniFiGatewayV1 is CoreControlled {
         return receiptTokens;
     }
 
-    function zapInAndLock(
-        address _token,
-        uint256 _amount,
-        bytes calldata _routerData,
-        uint32 _unwindingEpochs,
-        address _to
-    ) external payable whenNotPaused returns (uint256) {
+    function _zapToReceiptTokens(address _token, uint256 _amount, address _router, bytes calldata _routerData)
+        internal
+        returns (uint256, ReceiptToken)
+    {
+        require(enabledRouters[_router], InvalidZapRouter());
+
         // pull in the tokens and approve the router if not using native ETH
-        address _router = getAddress("zapRouter");
         if (_token != address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
             ERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
             ERC20(_token).forceApprove(address(_router), _amount);
@@ -103,14 +130,72 @@ contract InfiniFiGatewayV1 is CoreControlled {
 
         // read the protocol addresses from storage
         MintController mintController = MintController(getAddress("mintController"));
-        LockingController lockingController = LockingController(getAddress("lockingController"));
-        ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
         ERC20 usdc = ERC20(getAddress("USDC"));
+        ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
 
         // mint iUSD
         uint256 usdcReceived = usdc.balanceOf(address(this));
         usdc.approve(address(mintController), usdcReceived);
         uint256 receiptTokens = mintController.mint(address(this), usdcReceived);
+
+        {
+            uint256 _zapFee = zapFee;
+            if (_zapFee != 0) {
+                uint256 fee = receiptTokens.mulWadDown(_zapFee);
+                receiptTokens -= fee;
+                iusd.transfer(getAddress("yieldSharing"), fee);
+            }
+        }
+
+        emit ZapIn(block.timestamp, msg.sender, _token, _amount, receiptTokens);
+
+        return (receiptTokens, iusd);
+    }
+
+    function zapIn(address _token, uint256 _amount, address _router, bytes calldata _routerData, address _to)
+        external
+        payable
+        whenNotPaused
+        nonReentrant
+        returns (uint256)
+    {
+        (uint256 receiptTokens, ReceiptToken iusd) = _zapToReceiptTokens(_token, _amount, _router, _routerData);
+
+        // send iUSD to receiver
+        iusd.transfer(_to, receiptTokens);
+        return receiptTokens;
+    }
+
+    function zapInAndStake(address _token, uint256 _amount, address _router, bytes calldata _routerData, address _to)
+        external
+        payable
+        whenNotPaused
+        nonReentrant
+        returns (uint256)
+    {
+        (uint256 receiptTokens, ReceiptToken iusd) = _zapToReceiptTokens(_token, _amount, _router, _routerData);
+
+        // read the protocol addresses from storage
+        StakedToken siusd = StakedToken(getAddress("stakedToken"));
+
+        // mint iUSD and stake it to siUSD
+        iusd.approve(address(siusd), receiptTokens);
+        siusd.deposit(receiptTokens, _to);
+        return receiptTokens;
+    }
+
+    function zapInAndLock(
+        address _token,
+        uint256 _amount,
+        address _router,
+        bytes calldata _routerData,
+        uint32 _unwindingEpochs,
+        address _to
+    ) external payable whenNotPaused nonReentrant returns (uint256) {
+        (uint256 receiptTokens, ReceiptToken iusd) = _zapToReceiptTokens(_token, _amount, _router, _routerData);
+
+        // read the protocol addresses from storage
+        LockingController lockingController = LockingController(getAddress("lockingController"));
 
         // lock the iUSD
         iusd.approve(address(lockingController), receiptTokens);
@@ -121,6 +206,7 @@ contract InfiniFiGatewayV1 is CoreControlled {
     function mintAndLock(address _to, uint256 _amount, uint32 _unwindingEpochs)
         external
         whenNotPaused
+        nonReentrant
         returns (uint256)
     {
         MintController mintController = MintController(getAddress("mintController"));
@@ -140,6 +226,7 @@ contract InfiniFiGatewayV1 is CoreControlled {
     function unstakeAndLock(address _to, uint256 _amount, uint32 _unwindingEpochs)
         external
         whenNotPaused
+        nonReentrant
         returns (uint256)
     {
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
@@ -154,7 +241,11 @@ contract InfiniFiGatewayV1 is CoreControlled {
         return receiptTokens;
     }
 
-    function createPosition(uint256 _amount, uint32 _unwindingEpochs, address _recipient) external whenNotPaused {
+    function createPosition(uint256 _amount, uint32 _unwindingEpochs, address _recipient)
+        external
+        whenNotPaused
+        nonReentrant
+    {
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
         LockingController lockingController = LockingController(getAddress("lockingController"));
 
@@ -163,7 +254,7 @@ contract InfiniFiGatewayV1 is CoreControlled {
         lockingController.createPosition(_amount, _unwindingEpochs, _recipient);
     }
 
-    function startUnwinding(uint256 _shares, uint32 _unwindingEpochs) external whenNotPaused {
+    function startUnwinding(uint256 _shares, uint32 _unwindingEpochs) external whenNotPaused nonReentrant {
         LockingController lockingController = LockingController(getAddress("lockingController"));
         LockedPositionToken liusd = LockedPositionToken(lockingController.shareToken(_unwindingEpochs));
 
@@ -172,38 +263,52 @@ contract InfiniFiGatewayV1 is CoreControlled {
         lockingController.startUnwinding(_shares, _unwindingEpochs, msg.sender);
     }
 
-    function increaseUnwindingEpochs(uint32 _oldUnwindingEpochs, uint32 _newUnwindingEpochs) external whenNotPaused {
+    function increaseUnwindingEpochs(uint32 _oldUnwindingEpochs, uint32 _newUnwindingEpochs, uint256 _shares)
+        external
+        whenNotPaused
+        nonReentrant
+    {
         LockingController lockingController = LockingController(getAddress("lockingController"));
         LockedPositionToken liusd = LockedPositionToken(lockingController.shareToken(_oldUnwindingEpochs));
 
-        uint256 shares = liusd.balanceOf(msg.sender);
-        liusd.transferFrom(msg.sender, address(this), shares);
-        liusd.approve(address(lockingController), shares);
-        lockingController.increaseUnwindingEpochs(shares, _oldUnwindingEpochs, _newUnwindingEpochs, msg.sender);
+        liusd.transferFrom(msg.sender, address(this), _shares);
+        liusd.approve(address(lockingController), _shares);
+        lockingController.increaseUnwindingEpochs(_shares, _oldUnwindingEpochs, _newUnwindingEpochs, msg.sender);
     }
 
-    function cancelUnwinding(uint256 _unwindingTimestamp, uint32 _newUnwindingEpochs) external whenNotPaused {
+    function cancelUnwinding(uint256 _unwindingTimestamp, uint32 _newUnwindingEpochs)
+        external
+        whenNotPaused
+        nonReentrant
+    {
         LockingController(getAddress("lockingController")).cancelUnwinding(
             msg.sender, _unwindingTimestamp, _newUnwindingEpochs
         );
     }
 
-    function withdraw(uint256 _unwindingTimestamp) external whenNotPaused {
+    function withdraw(uint256 _unwindingTimestamp) external whenNotPaused nonReentrant {
         _revertIfThereAreUnaccruedLosses();
         LockingController(getAddress("lockingController")).withdraw(msg.sender, _unwindingTimestamp);
     }
 
-    function redeem(address _to, uint256 _amount) external whenNotPaused returns (uint256) {
+    function redeem(address _to, uint256 _amount, uint256 _minAssetsOut)
+        external
+        whenNotPaused
+        nonReentrant
+        returns (uint256)
+    {
         _revertIfThereAreUnaccruedLosses();
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
         RedeemController redeemController = RedeemController(getAddress("redeemController"));
 
         iusd.transferFrom(msg.sender, address(this), _amount);
         iusd.approve(address(redeemController), _amount);
-        return redeemController.redeem(_to, _amount);
+        uint256 assetsOut = redeemController.redeem(_to, _amount);
+        require(assetsOut >= _minAssetsOut, MinAssetsOutError(_minAssetsOut, assetsOut));
+        return assetsOut;
     }
 
-    function claimRedemption() external whenNotPaused {
+    function claimRedemption() external whenNotPaused nonReentrant {
         RedeemController(getAddress("redeemController")).claimRedemption(msg.sender);
     }
 
@@ -212,7 +317,7 @@ contract InfiniFiGatewayV1 is CoreControlled {
         uint32 _unwindingEpochs,
         AllocationVoting.AllocationVote[] calldata _liquidVotes,
         AllocationVoting.AllocationVote[] calldata _illiquidVotes
-    ) external whenNotPaused {
+    ) external whenNotPaused nonReentrant {
         AllocationVoting(getAddress("allocationVoting")).vote(
             msg.sender, _asset, _unwindingEpochs, _liquidVotes, _illiquidVotes
         );
@@ -223,7 +328,7 @@ contract InfiniFiGatewayV1 is CoreControlled {
         uint32[] calldata _unwindingEpochs,
         AllocationVoting.AllocationVote[][] calldata _liquidVotes,
         AllocationVoting.AllocationVote[][] calldata _illiquidVotes
-    ) external whenNotPaused {
+    ) external whenNotPaused nonReentrant {
         AllocationVoting allocationVoting = AllocationVoting(getAddress("allocationVoting"));
 
         for (uint256 i = 0; i < _assets.length; i++) {

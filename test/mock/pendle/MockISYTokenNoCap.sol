@@ -11,4 +11,8 @@ contract MockISYTokenNoCap is MockERC20 {
     function test() public pure override {}
 
     constructor(string memory name, string memory symbol) MockERC20(name, symbol) {}
+
+    function assetInfo() external view returns (uint8 assetType, address assetAddress, uint8 assetDecimals) {
+        return (0, address(this), 18);
+    }
 }

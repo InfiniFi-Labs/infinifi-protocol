@@ -17,6 +17,9 @@ library CoreRoles {
     /// @notice can tweak protocol parameters
     bytes32 internal constant PROTOCOL_PARAMETERS = keccak256("PROTOCOL_PARAMETERS");
 
+    /// @notice can manage minor roles
+    bytes32 internal constant MINOR_ROLES_MANAGER = keccak256("MINOR_ROLES_MANAGER");
+
     /// ----------- User Flow Management -----------------------
 
     /// @notice Granted to the user entry point of the system
@@ -46,6 +49,9 @@ library CoreRoles {
 
     /// @notice addresses who can use the periodic rebalancer
     bytes32 internal constant PERIODIC_REBALANCER = keccak256("PERIODIC_REBALANCER");
+
+    /// @notice addresses who can move funds from farms to a safe address
+    bytes32 internal constant EMERGENCY_WITHDRAWAL = keccak256("EMERGENCY_WITHDRAWAL");
 
     /// @notice addresses who can trigger swaps in Farms
     bytes32 internal constant FARM_SWAP_CALLER = keccak256("FARM_SWAP_CALLER");

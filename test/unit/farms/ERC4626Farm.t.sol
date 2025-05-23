@@ -101,11 +101,4 @@ contract ERC4626FarmUnitTest is Fixture {
         vm.expectRevert(abi.encodeWithSelector(ERC4626Farm.AssetMismatch.selector, address(usdc), dai));
         new ERC4626Farm(address(core), address(usdc), address(vaultDai));
     }
-
-    function testMaxDeposit() public {
-        assertEq(farm.maxDeposit(), type(uint256).max, "Error: maxDeposit should be type(uint256).max by default");
-
-        vault.mockSetMaxDeposit(100e6);
-        assertEq(farm.maxDeposit(), 100e6, "Error: erc4626 farm maxDeposit should forward the vault's maxDeposit");
-    }
 }

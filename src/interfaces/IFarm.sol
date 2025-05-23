@@ -9,8 +9,11 @@ interface IFarm {
     // --------------------------------------------------------------------
     // Accounting
     // --------------------------------------------------------------------
-    /// @notice the asset used by deposits and withdrawals in the farm
 
+    /// @notice the cap of the farm
+    function cap() external view returns (uint256);
+
+    /// @notice the asset used by deposits and withdrawals in the farm
     function assetToken() external view returns (address);
 
     /// @notice the total assets in the farm, reported as a balance of asset()

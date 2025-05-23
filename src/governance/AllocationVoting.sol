@@ -40,7 +40,8 @@ contract AllocationVoting is CoreControlled {
         address indexed user,
         uint32 unwindingEpochs,
         AllocationVote[] liquidVotes,
-        AllocationVote[] illiquidVotes
+        AllocationVote[] illiquidVotes,
+        uint256 userWeight
     );
 
     struct AllocationVote {
@@ -118,14 +119,18 @@ contract AllocationVoting is CoreControlled {
         uint256 weight = LockingController(lockingController).rewardWeightForUnwindingEpochs(_user, _unwindingEpochs);
         require(weight > 0, NoVotingPower(_user, _unwindingEpochs));
 
-        _storeUserVotes(_asset, _unwindingEpochs, epoch, weight, _illiquidVotes, false);
-        _storeUserVotes(_asset, _unwindingEpochs, epoch, weight, _liquidVotes, true);
+        if (_illiquidVotes.length > 0) {
+            _storeUserVotes(_asset, _unwindingEpochs, epoch, weight, _illiquidVotes, false);
+        }
+        if (_liquidVotes.length > 0) {
+            _storeUserVotes(_asset, _unwindingEpochs, epoch, weight, _liquidVotes, true);
+        }
 
         // restrict transfer until the next epoch after voting
         address shareToken = LockingController(lockingController).shareToken(_unwindingEpochs);
         LockedPositionToken(shareToken).restrictTransferUntilNextEpoch(_user);
 
-        emit FarmVoteRegistered(block.timestamp, epoch, _user, _unwindingEpochs, _liquidVotes, _illiquidVotes);
+        emit FarmVoteRegistered(block.timestamp, epoch, _user, _unwindingEpochs, _liquidVotes, _illiquidVotes, weight);
     }
 
     /// -----------------------------------------------------------------------------------------------
@@ -184,13 +189,19 @@ contract AllocationVoting is CoreControlled {
                     data = FarmWeightData({epoch: _epoch, currentWeight: 0, nextWeight: 0});
                 }
             }
-            data.nextWeight += uint112(_votes[i].weight);
+
+            data.nextWeight += uint112(_userWeight.mulWadDown(_votes[i].weight));
             farmWeightData[farm] = data;
             weightAllocated += _votes[i].weight;
         }
 
         // user must allocate all of their voting power when casting a vote
-        require(weightAllocated == _userWeight || weightAllocated == 0, InvalidWeights(_userWeight, weightAllocated));
+        // or not vote for a particular farm type at all
+        // for example, user can choose to vote only for liquid farms, or only for maturity farms
+        require(
+            weightAllocated == FixedPointMathLib.WAD || weightAllocated == 0,
+            InvalidWeights(FixedPointMathLib.WAD, weightAllocated)
+        );
     }
 
     function _getVoteWeights(address[] memory _farms) internal view returns (uint256[] memory, uint256) {
@@ -215,7 +226,7 @@ contract AllocationVoting is CoreControlled {
 
     function _validateFarmBucket(address _farm, uint32 _unwindingEpochs) internal view {
         uint256 maturity = IMaturityFarm(_farm).maturity();
-        uint256 userUnwindingTimestamp = (block.timestamp.epoch() + _unwindingEpochs).epochToTimestamp();
-        require(maturity < userUnwindingTimestamp, InvalidTargetBucket(_farm, maturity, userUnwindingTimestamp));
+        uint256 userUnwindingTimestamp = (block.timestamp.nextEpoch() + _unwindingEpochs).epochToTimestamp();
+        require(maturity <= userUnwindingTimestamp, InvalidTargetBucket(_farm, maturity, userUnwindingTimestamp));
     }
 }

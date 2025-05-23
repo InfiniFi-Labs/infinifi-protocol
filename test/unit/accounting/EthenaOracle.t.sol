@@ -29,16 +29,13 @@ contract EthenaOracleTest is InfiniFiTest {
     }
 
     function testPrice() public view {
-        assertEq(oracle.price(), 1e36 / 1e6, "Error: Oracle price is not correct");
+        assertEq(oracle.price(), 1e18, "Error: Oracle price is not correct");
     }
 
     function testPriceNotOne() public {
         // if sUSDe convertToAssets ratio is 1.15
         // it means 1 sUSDe is 1.15 USDe
         mock4626.mockSharePrice(1.15e18);
-
-        // it means our oracle price should be
-        // 1e36 / 1.15e6
-        assertEq(oracle.price(), uint256(1e36 / uint256(1.15e6)), "Error: Oracle price is not correct");
+        assertEq(oracle.price(), 1.15e18, "Error: Oracle price is not correct");
     }
 }

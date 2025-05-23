@@ -36,7 +36,7 @@ contract StakedToken is ERC4626, CoreControlled {
 
     constructor(address _core, address _receiptToken)
         CoreControlled(_core)
-        ERC20(string.concat("Savings ", ERC20(_receiptToken).name()), string.concat("s", ERC20(_receiptToken).symbol()))
+        ERC20(string.concat("Staked ", ERC20(_receiptToken).name()), string.concat("s", ERC20(_receiptToken).symbol()))
         ERC4626(IERC20(_receiptToken))
     {}
 
@@ -46,36 +46,8 @@ contract StakedToken is ERC4626, CoreControlled {
     }
 
     /// ---------------------------------------------------------------------------
-    /// Pausability
+    /// Overrides
     /// ---------------------------------------------------------------------------
-
-    function mint(uint256 _shares, address _receiver) public override whenNotPaused returns (uint256) {
-        return super.mint(_shares, _receiver);
-    }
-
-    function redeem(uint256 _amountIn, address _to, address _receiver)
-        public
-        override
-        whenNotPaused
-        returns (uint256)
-    {
-        _revertIfThereAreUnaccruedLosses();
-        return super.redeem(_amountIn, _to, _receiver);
-    }
-
-    function deposit(uint256 _amountIn, address _to) public override whenNotPaused returns (uint256) {
-        return super.deposit(_amountIn, _to);
-    }
-
-    function withdraw(uint256 assets, address receiver, address owner)
-        public
-        override
-        whenNotPaused
-        returns (uint256)
-    {
-        _revertIfThereAreUnaccruedLosses();
-        return super.withdraw(assets, receiver, owner);
-    }
 
     function maxMint(address _receiver) public view override returns (uint256) {
         if (paused()) {
@@ -92,29 +64,65 @@ contract StakedToken is ERC4626, CoreControlled {
     }
 
     function maxRedeem(address _receiver) public view override returns (uint256) {
-        if (paused()) {
+        if (paused() || YieldSharing(yieldSharing).unaccruedYield() < 0) {
             return 0;
         }
-        _revertIfThereAreUnaccruedLosses();
         return super.maxRedeem(_receiver);
     }
 
     function maxWithdraw(address _receiver) public view override returns (uint256) {
-        if (paused()) {
+        if (paused() || YieldSharing(yieldSharing).unaccruedYield() < 0) {
             return 0;
         }
-        _revertIfThereAreUnaccruedLosses();
         return super.maxWithdraw(_receiver);
     }
 
-    function _revertIfThereAreUnaccruedLosses() internal view {
-        require(YieldSharing(yieldSharing).unaccruedYield() >= 0, PendingLossesUnapplied());
+    // override vault deposits & withdrawals to hook into yieldSharing, so
+    // that yieldSharing can cache the number of receiptTokens staked in StakedToken
+    // and avoid intra-block manipulations during yield distribution.
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+        YieldSharing(yieldSharing).getCachedStakedReceiptTokens();
+        super._deposit(caller, receiver, assets, shares);
+    }
+
+    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+        internal
+        override
+    {
+        YieldSharing(yieldSharing).getCachedStakedReceiptTokens();
+        super._withdraw(caller, receiver, owner, assets, shares);
     }
 
     /// ---------------------------------------------------------------------------
     /// Loss Management
     /// ---------------------------------------------------------------------------
 
+    /// @notice Slash losses in future epoch rewards, current epoch rewards, and principal.
+    /// @dev note that this function might behave slightly differently than expected, for the sake
+    /// of simplicity in the slashing logic.
+    /// Take the following example:
+    /// - 1500 assets in "vault principal"
+    /// - 300 in current epoch rewards (150 already available, 150 still vesting)
+    /// - 50 in next epoch rewards
+    /// -> totalAssets() = 1650.
+    /// If a loss of 250 occurs, you might expect the slashing to remove :
+    /// - 50 tokens in next epoch rewards (200 loss still remaining)
+    /// - 150 tokens in current epoch vesting rewards (50 loss still remaining)
+    /// - 50 tokens in principal (0 loss remaining)
+    /// -> resulting in a totalAssets() of 1500 - 50 (principal slash)
+    ///    + 150 (vested current epoch rewards) = 1600.
+    ///    and no remaining rewards towards the end of the epoch.
+    /// However, the actual behavior will be:
+    /// - 50 tokens in next epoch rewards (200 loss still remaining)
+    /// - 200 tokens in current epoch vesting rewards (0 loss remaining)
+    ///   current epoch rewards updated to 300 - 200 = 100
+    /// -> resulting in a totalAssets() of 1500 + 50 (vested current epoch rewards) = 1550.
+    ///    and a remaining rewards interpolation of 50 until the end of the epoch, resulting
+    ///    in a totalAssets() at the end of the epoch of 1600.
+    /// This is a slight inconsistency between how losses are applied and how rewards are
+    /// interpolated/reported in totalAssets(). Operationally, the interpolating rewards should be
+    /// small compared to the vault's TVL, and slashing events should be rare, so this simplified
+    /// logic is acceptable.
     function applyLosses(uint256 _amount) external onlyCoreRole(CoreRoles.FINANCE_MANAGER) {
         // any future rewards are slashed first
         // first, slash next epoch rewards

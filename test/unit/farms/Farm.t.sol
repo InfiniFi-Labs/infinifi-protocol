@@ -99,4 +99,23 @@ contract FarmUnitTest is Fixture {
 
         assertEq(farm.maxSlippage(), 0.98e18, "Error: Farm's maxSlippage should be 0.98e18");
     }
+
+    function testMaxDepositViewer() public {
+        vm.prank(parametersAddress);
+        farm.setCap(1000e6);
+
+        assertEq(farm.maxDeposit(), 1000e6);
+
+        usdc.mint(address(farm), 500e6);
+        vm.prank(farmManagerAddress);
+        farm.deposit();
+
+        assertEq(farm.maxDeposit(), 500e6);
+
+        // set cap to below current assets()
+        vm.prank(parametersAddress);
+        farm.setCap(50e6);
+
+        assertEq(farm.maxDeposit(), 0);
+    }
 }

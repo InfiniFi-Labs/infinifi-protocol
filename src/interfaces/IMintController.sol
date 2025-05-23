@@ -2,6 +2,9 @@
 pragma solidity 0.8.28;
 
 interface IAfterMintHook {
+    /// @notice event emitted when asset rebalance threshold is updated by the governance
+    event AssetRebalanceThresholdUpdated(uint256 indexed timestamp, uint256 amount);
+
     /// @param _to the address to mint to
     /// @param _assetsIn the amount of assets deposited
     function afterMint(address _to, uint256 _assetsIn) external;
@@ -9,13 +12,14 @@ interface IAfterMintHook {
 
 /// @notice Interface for an InfiniFi Staking Controller contract
 interface IMintController {
-    /// @notice error emitted when the minting amount is too low
-    error MintAmountTooLow(uint256 _amountIn, uint256 _minMintAmount);
+    /// @notice error emitted when the asset amount is too low
+    error AssetAmountTooLow(uint256 _amountIn, uint256 _minAssetAmount);
 
     /// @notice event emitted when afterMintHook is changed
     event AfterMintHookChanged(uint256 indexed timestamp, address hook);
-    /// @notice event emitted when minimum mint amount is updated by the governance
-    event MinMintAmountUpdated(uint256 indexed timestamp, uint256 amount);
+
+    /// @notice event emitted when minimum asset amount is updated by the governance
+    event MinAssetAmountUpdated(uint256 indexed timestamp, uint256 amount);
 
     /// @notice event emitted upon a minting
     event Mint(uint256 indexed timestamp, address indexed to, address asset, uint256 amountIn, uint256 amountOut);

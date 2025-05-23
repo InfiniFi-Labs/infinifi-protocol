@@ -25,7 +25,7 @@ contract MintController is Farm, IMintController {
 
     /// @notice minimum mint amount
     /// @dev can be set to a different number by GOVERNOR role
-    uint256 public minMintAmount = 1;
+    uint256 public minAssetAmount = 1;
 
     /// @notice address to call in the afterMint hook
     address public afterMintHook;
@@ -38,10 +38,10 @@ contract MintController is Farm, IMintController {
     }
 
     /// @notice sets the minimum mint amount
-    function setMinMintAmount(uint256 _minMintAmount) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
-        require(_minMintAmount > 0, MintAmountTooLow(_minMintAmount, 1));
-        minMintAmount = _minMintAmount;
-        emit MinMintAmountUpdated(block.timestamp, _minMintAmount);
+    function setMinAssetAmount(uint256 _minAssetAmount) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
+        require(_minAssetAmount > 0, AssetAmountTooLow(_minAssetAmount, 1));
+        minAssetAmount = _minAssetAmount;
+        emit MinAssetAmountUpdated(block.timestamp, _minAssetAmount);
     }
 
     /// @notice sets the afterMintHook
@@ -55,7 +55,7 @@ contract MintController is Farm, IMintController {
         uint256 assetTokenPrice = Accounting(accounting).price(assetToken);
         uint256 receiptTokenPrice = Accounting(accounting).price(receiptToken);
 
-        uint256 convertRatio = receiptTokenPrice.divWadDown(assetTokenPrice);
+        uint256 convertRatio = receiptTokenPrice.divWadUp(assetTokenPrice);
         return _assetAmount.divWadDown(convertRatio);
     }
 
@@ -76,8 +76,7 @@ contract MintController is Farm, IMintController {
         onlyCoreRole(CoreRoles.ENTRY_POINT)
         returns (uint256)
     {
-        // checks
-        require(_assetAmountIn >= minMintAmount, MintAmountTooLow(_assetAmountIn, minMintAmount));
+        require(_assetAmountIn >= minAssetAmount, AssetAmountTooLow(_assetAmountIn, minAssetAmount));
         uint256 receiptAmountOut = assetToReceipt(_assetAmountIn);
 
         // pull assets & mint receipt tokens to recipient

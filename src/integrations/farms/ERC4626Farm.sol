@@ -29,7 +29,7 @@ contract ERC4626Farm is Farm {
         return ERC4626(vault).convertToAssets(vaultShares);
     }
 
-    function liquidity() public view override returns (uint256) {
+    function liquidity() public view virtual override returns (uint256) {
         return ERC4626(vault).maxWithdraw(address(this));
     }
 
@@ -38,11 +38,7 @@ contract ERC4626Farm is Farm {
         ERC4626(vault).deposit(availableAssets, address(this));
     }
 
-    function _withdraw(uint256 _amount, address _to) internal override {
+    function _withdraw(uint256 _amount, address _to) internal virtual override {
         ERC4626(vault).withdraw(_amount, _to, address(this));
-    }
-
-    function maxDeposit() external view override returns (uint256) {
-        return ERC4626(vault).maxDeposit(address(this));
     }
 }

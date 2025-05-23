@@ -92,6 +92,18 @@ contract RedeemController is Farm, RedemptionPool, IRedeemController {
         uint256 convertRatio = _getReceiptToAssetConvertRatio();
         uint256 assetAmountOut = _convertReceiptToAsset(_receiptAmountIn, convertRatio);
 
+        // To simplify the logic, we enqueue immediately if there are some entries inside the queue already
+        // This is better than attempting to fund the entire queue and do a very big automatic movement inside the system
+        // Trying to do so would be very expensive in terms of gas and could lead to slippage losses and potential accounting issues
+        if (queueLength() > 0) {
+            uint256 _amountReceiptToQueue = _convertAssetToReceipt(assetAmountOut, convertRatio);
+            ReceiptToken(receiptToken).transferFrom(msg.sender, address(this), _amountReceiptToQueue);
+            _enqueue(_to, _amountReceiptToQueue);
+
+            emit Redeem(block.timestamp, _to, assetToken, _receiptAmountIn, assetAmountOut);
+            return 0;
+        }
+
         address _beforeRedeemHook = beforeRedeemHook;
         if (_beforeRedeemHook != address(0)) {
             IBeforeRedeemHook(_beforeRedeemHook).beforeRedeem(_to, _receiptAmountIn, assetAmountOut);
@@ -135,7 +147,9 @@ contract RedeemController is Farm, RedemptionPool, IRedeemController {
     function _deposit(uint256 assetsToDeposit) internal override {
         if (assetsToDeposit > 0) {
             (, uint256 receiptAmountToBurn) = _fundRedemptionQueue(assetsToDeposit, _getReceiptToAssetConvertRatio());
-            ReceiptToken(receiptToken).burn(receiptAmountToBurn);
+            if (receiptAmountToBurn > 0) {
+                ReceiptToken(receiptToken).burn(receiptAmountToBurn);
+            }
         }
     }
 

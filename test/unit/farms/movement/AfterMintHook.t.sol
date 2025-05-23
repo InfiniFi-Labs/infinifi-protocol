@@ -1,6 +1,7 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {BaseHookTest} from "@test/unit/farms/movement/BaseHook.t.sol";
 import {AfterMintHook} from "@integrations/farms/movement/AfterMintHook.sol";
 import {MockPartialFarm} from "@test/mock/MockPartialFarm.sol";
@@ -105,5 +106,72 @@ contract AfterMintHookTest is BaseHookTest, AfterMintHook {
         controllerFarm.callMintHook(this, amount);
 
         assertEq(farm2.assets(), farm3.assets(), "Even split has to put money 50-50");
+    }
+
+    function testAfterMintPausedFarm()
+        public
+        configureFarms(20 ether, 40 ether, 40 ether)
+        setWeights(60, 20, 20)
+        setAmount(10 ether)
+    {
+        address _farmWithoutPause = _findOptimalDepositFarm(farms, weights, _getTotalPower(), _getTotalAssets(), amount);
+        assertEq(_farmWithoutPause, address(farm1), "Farm should be farm 1");
+
+        farm1.pause();
+
+        address _farmAfterPause = _findOptimalDepositFarm(farms, weights, _getTotalPower(), _getTotalAssets(), amount);
+        assertNotEq(_farmAfterPause, address(farm1), "Farm1 should be skipped this time as it is paused");
+    }
+
+    function testAfterMintAllFarmsPaused()
+        public
+        configureFarms(20 ether, 40 ether, 40 ether)
+        setWeights(60, 20, 20)
+        setAmount(10 ether)
+    {
+        farm1.pause();
+        farm2.pause();
+        farm3.pause();
+
+        controllerFarm.directDeposit(amount);
+        controllerFarm.callMintHook(this, amount);
+
+        assertEq(farm1.assets(), 20 ether, "Farm 1 should still have 20 ether");
+        assertEq(farm2.assets(), 40 ether, "Farm 2 should still have 40 ether");
+        assertEq(farm3.assets(), 40 ether, "Farm 3 should still have 40 ether");
+    }
+
+    function testAfterMintThreshold()
+        public
+        configureFarms(20 ether, 40 ether, 40 ether)
+        setWeights(60, 20, 20)
+        setAmount(10 ether)
+    {
+        this.setAssetRebalanceThreshold(amount * 2);
+
+        controllerFarm.directDeposit(amount);
+        controllerFarm.callMintHook(this, amount);
+
+        // farms should not be changed
+        assertEq(farm1.assets(), 20 ether, "Farm 1 should have 20 ether");
+        assertEq(farm2.assets(), 40 ether, "Farm 2 should have 40 ether");
+        assertEq(farm3.assets(), 40 ether, "Farm 3 should have 40 ether");
+    }
+
+    function testAfterMintThresholdCorrectValue()
+        public
+        configureFarms(20 ether, 40 ether, 40 ether)
+        setWeights(60, 20, 20)
+        setAmount(10 ether)
+    {
+        this.setAssetRebalanceThreshold(amount);
+
+        controllerFarm.directDeposit(amount);
+        controllerFarm.callMintHook(this, amount);
+
+        // farms should not be changed
+        assertEq(farm1.assets(), 30 ether, "Farm 1 should have 30 ether");
+        assertEq(farm2.assets(), 40 ether, "Farm 2 should have 40 ether");
+        assertEq(farm3.assets(), 40 ether, "Farm 3 should have 40 ether");
     }
 }

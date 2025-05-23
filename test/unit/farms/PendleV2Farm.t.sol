@@ -18,7 +18,7 @@ import {Farm, PendleV2Farm} from "@integrations/farms/PendleV2Farm.sol";
 contract PendleV2FarmUnitTest is Fixture {
     MockPendleMarket pendleMarket;
     MockPendleOracle pendleOracle;
-    FixedPriceOracle assetToPtUnderlyingOracle;
+    FixedPriceOracle underlyingOracle;
     MockISYToken syToken = new MockISYToken("SY_TOKEN", "SYT");
     MockERC20 ptToken = new MockERC20("PT_TOKEN", "PTT");
     address ytToken = makeAddr("YT_TOKEN");
@@ -26,7 +26,6 @@ contract PendleV2FarmUnitTest is Fixture {
 
     MockPendleMarket pendleMarketNoCap;
     MockPendleOracle pendleOracleNoCap;
-    FixedPriceOracle assetToPtUnderlyingOracleNoCap;
     MockISYTokenNoCap syTokenNoCap = new MockISYTokenNoCap("SY_TOKEN", "SYT");
     MockERC20 ptTokenNoCap = new MockERC20("PT_TOKEN", "PTT");
     address ytTokenNoCap = makeAddr("YT_TOKEN");
@@ -39,7 +38,7 @@ contract PendleV2FarmUnitTest is Fixture {
 
         pendleMarket = new MockPendleMarket();
         pendleOracle = new MockPendleOracle();
-        assetToPtUnderlyingOracle = new FixedPriceOracle(address(core), 1e6); // 1e18 USDE ~= 1e6 USDC
+        underlyingOracle = new FixedPriceOracle(address(core), 1e18); // 1$
         pendleMarket.mockSetExpiry(block.timestamp + 30 days);
         pendleMarket.mockSetTokens(address(syToken), address(ptToken), ytToken);
         pendleOracle.mockSetRate(0.8e18);
@@ -47,27 +46,21 @@ contract PendleV2FarmUnitTest is Fixture {
         syToken.setAbsoluteSupplyCap(25_000e18);
         syToken.setAbsoluteTotalSupply(0);
 
+        vm.prank(oracleManagerAddress);
+        accounting.setOracle(address(syToken), address(underlyingOracle));
+
         farm = new PendleV2Farm(
-            address(core),
-            address(usdc),
-            address(pendleMarket),
-            address(pendleOracle),
-            address(assetToPtUnderlyingOracle)
+            address(core), address(usdc), address(pendleMarket), address(pendleOracle), address(accounting)
         );
 
         pendleMarketNoCap = new MockPendleMarket();
         pendleOracleNoCap = new MockPendleOracle();
-        assetToPtUnderlyingOracleNoCap = new FixedPriceOracle(address(core), 1e6); // 1e18 USDE ~= 1e6 USDC
         pendleMarketNoCap.mockSetExpiry(block.timestamp + 30 days);
         pendleMarketNoCap.mockSetTokens(address(syTokenNoCap), address(ptTokenNoCap), ytTokenNoCap);
         pendleOracleNoCap.mockSetRate(0.8e18);
 
         farmNoCap = new PendleV2Farm(
-            address(core),
-            address(usdc),
-            address(pendleMarketNoCap),
-            address(pendleOracleNoCap),
-            address(assetToPtUnderlyingOracleNoCap)
+            address(core), address(usdc), address(pendleMarketNoCap), address(pendleOracleNoCap), address(accounting)
         );
 
         vm.prank(parametersAddress);
@@ -111,24 +104,11 @@ contract PendleV2FarmUnitTest is Fixture {
     function testInitialState() public view {
         assertEq(farm.pendleMarket(), address(pendleMarket));
         assertEq(farm.pendleOracle(), address(pendleOracle));
-        assertEq(farm.assetToPtUnderlyingOracle(), address(assetToPtUnderlyingOracle));
+        assertEq(farm.accounting(), address(accounting));
         assertEq(farm.assets(), 0);
         assertEq(farm.maturity(), pendleMarket.expiry());
         assertEq(farm.ptToken(), address(ptToken));
         assertEq(farm.assetToken(), address(usdc));
-    }
-
-    function testPendleV2FarmMaxDeposit() public {
-        // by default, the farm cap is the cap of the SY token
-        assertEq(farm.maxDeposit(), 25_000e6, "Max deposit amount is not correct!");
-        // if we change the SY total supply, the farm cap should be updated
-        syToken.setAbsoluteTotalSupply(10_000e18);
-        assertEq(farm.maxDeposit(), 15_000e6, "Max deposit amount is not correct!");
-
-        // if we set the farm cap to 1000e6, the max deposit should be 1000e6
-        vm.prank(parametersAddress);
-        farm.setCap(1_000e6);
-        assertEq(farm.maxDeposit(), 1_000e6, "Max deposit amount is not correct!");
     }
 
     function testPendleV2NoCapMaxDeposit() public view {
@@ -335,60 +315,20 @@ contract PendleV2FarmUnitTest is Fixture {
         assertEq(farm.liquidity(), 222e6);
     }
 
-    // GRAPH TESTS
-    // function testGraphYield() public {
-    //     scenarioDepositAssetsAndWrapBeforeMaturity(1000e6, 0.25e18);
-    //     pendleOracle.mockSetRate(1e18);
+    function testUnderlyingRateChangeNotOverflowing() public {
+        scenarioDepositAssetsAndWrapBeforeMaturity(1000e6, 0.25e18);
+        uint256 ts = block.timestamp;
+        uint256 expiry = farm.maturity();
+        vm.warp((ts + expiry) / 2);
+        scenarioDepositAssetsAndWrapBeforeMaturity(1000e6, 0.25e18);
 
-    //     uint256 step = 6 hours;
-    //     for (uint256 i = 0; i <= 40 days; i+=step) {
-    //         console.log("%s;%s", i*100/1 days, farm.assets());
-    //         vm.warp(block.timestamp + step);
-    //     }
-    // }
-
-    // function testTwoDepositsGraphYield() public {
-    //     uint256 initialYield = 0.25e18; // 25% yield at maturity
-    //     scenarioDepositAssetsAndWrapBeforeMaturity(1000e6, initialYield);
-
-    //     bool secondDepositDone = false;
-    //     uint256 secondDepositTimestamp = block.timestamp + 10 days;
-    //     // after 10 days, the yield should decrease of 1/3 (because maturity is 30 days)
-    //     uint256 step = 6 hours;
-    //     for (uint256 i = 0; i <= 40 days; i+=step) {
-    //         if (!secondDepositDone && block.timestamp > secondDepositTimestamp) {
-    //             uint256 yieldAfter10Days = initialYield * 2 / 3;
-    //             scenarioDepositAssetsAndWrapBeforeMaturity(1000e6, yieldAfter10Days);
-    //             secondDepositDone = true;
-    //         }
-    //         if(block.timestamp >= pendleMarket.expiry()) {
-    //             pendleOracle.mockSetRate(1e18);
-    //         }
-
-    //         console.log("%s;%s", i*100/1 days, farm.assets());
-    //         vm.warp(block.timestamp + step);
-    //     }
-    // }
-
-    // function testOneDepositPerDayGraphYield() public {
-    //     uint256 initialYield = 0.25e18; // 25% yield at maturity
-    //     scenarioDepositAssetsAndWrapBeforeMaturity(1000e6, initialYield);
-    //     uint256 lastDepositTimestamp = block.timestamp;
-
-    //     uint256 step = 6 hours;
-    //     for (uint256 i = 0; i <= 40 days; i+=step) {
-    //         if(block.timestamp < pendleMarket.expiry() && lastDepositTimestamp + 1 days <= block.timestamp) {
-    //             uint256 maturityInDays = (pendleMarket.expiry() - block.timestamp) / 1 days;
-    //             // console.log("maturity in days: %s", maturityInDays);
-    //             scenarioDepositAssetsAndWrapBeforeMaturity(1000e6, initialYield * maturityInDays / 30);
-    //             lastDepositTimestamp = block.timestamp;
-    //         }
-
-    //         if(block.timestamp >= pendleMarket.expiry()) {
-    //             pendleOracle.mockSetRate(1e18);
-    //         }
-    //         console.log("%s;%s", i*100/1 days, farm.assets());
-    //         vm.warp(block.timestamp + step);
-    //     }
-    // }
+        vm.prank(oracleManagerAddress);
+        underlyingOracle.setPrice(0.79999e18);
+        //  vm.expectRevert(abi.encodeWithSelector(Farm.SlippageTooHigh.selector, 99500000, 799990000));
+        try this.scenarioDepositAssetsAndWrapBeforeMaturity(1000e6, 0.25e18) {}
+        catch (bytes memory reason) {
+            // Make sure this error is slippage error from the above comment
+            assertEq(bytes4(reason), Farm.SlippageTooHigh.selector, "Expected SlippageTooHigh error");
+        }
+    }
 }

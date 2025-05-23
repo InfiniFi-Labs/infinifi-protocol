@@ -51,6 +51,7 @@ contract YieldSharingUnitTest is Fixture {
         usdc.mint(address(this), 500e6);
         usdc.approve(address(gateway), 500e6);
         gateway.mintAndStake(address(this), 500e6);
+        vm.warp(block.timestamp + 10);
 
         assertEq(
             siusd.balanceOf(address(this)),
@@ -115,6 +116,7 @@ contract YieldSharingUnitTest is Fixture {
         usdc.mint(address(this), 500e6);
         usdc.approve(address(gateway), 500e6);
         gateway.mintAndStake(address(this), 500e6);
+        vm.warp(block.timestamp + 10);
 
         // simulate 22$ profit
         farm1.mockProfit(22e6);
@@ -347,6 +349,7 @@ contract YieldSharingUnitTest is Fixture {
         usdc.mint(address(this), 500e6);
         usdc.approve(address(gateway), 500e6);
         gateway.mintAndStake(address(this), 500e6);
+        vm.warp(block.timestamp + 10);
 
         uint256 liquidBalanceBefore = iusd.balanceOf(address(siusd));
         uint256 lockingBalanceBefore = lockingController.totalBalance();
@@ -385,6 +388,7 @@ contract YieldSharingUnitTest is Fixture {
         usdc.mint(address(this), 500e6);
         usdc.approve(address(gateway), 500e6);
         gateway.mintAndStake(address(this), 500e6);
+        vm.warp(block.timestamp + 10);
 
         uint256 liquidBalanceBefore = iusd.balanceOf(address(siusd));
         uint256 lockingBalanceBefore = lockingController.totalBalance();
@@ -412,5 +416,85 @@ contract YieldSharingUnitTest is Fixture {
         assertEq(liquidRewards, 200e18, "Error: liquidRewards should increase after accrue"); // +100$ to savings
         assertEq(lockingRewards, 336e18, "Error: lockingRewards should increase after accrue"); // +168$ to locking
         assertEq(yieldSharing.unaccruedYield(), 0, "Error: Unaccrued yield should be 0 after accrue");
+    }
+
+    function testTryManipulateLiquidIlliquidRatio() public {
+        // alice deposits 500$ and bonds for 10 epochs
+        vm.startPrank(alice);
+        {
+            usdc.mint(alice, 500e6);
+            usdc.approve(address(gateway), 500e6);
+            gateway.mintAndLock(alice, 500e6, 10);
+        }
+        vm.stopPrank();
+
+        // bob deposits 500$ and stakes
+        vm.startPrank(bob);
+        {
+            usdc.mint(bob, 500e6);
+            usdc.approve(address(gateway), 500e6);
+            gateway.mintAndStake(bob, 500e6);
+        }
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 10);
+
+        // simulate 22$ profit
+        farm1.mockProfit(22e6);
+        // a malicious actor tries to sandwich the accrue() call and skew
+        // rewards towards the liquid side by atomically doing a large liquid
+        // deposit, accrue, and redeem (presumably with a flashloan), with the
+        // intent of earning more rewards on the liquid side on the next epoch.
+        vm.startPrank(carol);
+        {
+            usdc.mint(carol, 1_000_000e6);
+            usdc.approve(address(gateway), 1_000_000e6);
+            gateway.mintAndStake(carol, 1_000_000e6);
+            yieldSharing.accrue();
+            siusd.redeem(2_000_000e18, address(carol), address(carol));
+        }
+        vm.stopPrank();
+
+        // if manipulation were successful, most rewards should
+        // have gone to the liquid side instead of the 10/12 split.
+        assertEq(iusd.balanceOf(address(siusd)), 1000e18 + 20e18); // +10$ to staking
+        assertEq(lockingController.totalBalance(), 1000e18 + 24e18); // +12$ to locking
+    }
+
+    function testPerformanceFeeAppliesToNetProfitOnly() public {
+        // alice deposits 500$ and bonds for 10 epochs
+        vm.startPrank(alice);
+        {
+            usdc.mint(alice, 500e6);
+            usdc.approve(address(gateway), 500e6);
+            gateway.mintAndLock(alice, 500e6, 10);
+        }
+        vm.stopPrank();
+
+        vm.startPrank(parametersAddress);
+        {
+            yieldSharing.setSafetyBufferSize(5e18);
+            yieldSharing.setPerformanceFeeAndRecipient(0.2e18, address(this));
+        }
+        vm.stopPrank();
+
+        // simulate 10$ profit ~ 20 iUSD
+        farm1.mockProfit(10e6);
+        int256 unaccruedYieldBefore = yieldSharing.unaccruedYield();
+        assertEq(unaccruedYieldBefore, 20e18, "Unaccrued yield should be 20 iUSD before accrue");
+
+        yieldSharing.accrue();
+
+        int256 unaccruedYieldAfter = yieldSharing.unaccruedYield();
+        assertEq(unaccruedYieldAfter, 0, "Unaccrued yield should be 0 iUSD after accrue");
+
+        // 5 iUSD is in the buffer and it is not subject to fee
+        assertEq(iusd.balanceOf(address(yieldSharing)), 5e18, "5 iUSD should be in buffer");
+
+        // 15 iUSD is left for distribution, fee is 20%, so 3 iUSD goes to the fee recipient
+        assertEq(iusd.balanceOf(address(this)), 3e18, "3 iUSD should be charged to fee recipient");
+
+        // 12 iUSD is distributed to the locking module
+        assertEq(iusd.balanceOf(address(lockingController)), 1000e18 + 12e18);
     }
 }

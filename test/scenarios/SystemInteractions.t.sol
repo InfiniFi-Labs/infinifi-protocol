@@ -35,6 +35,8 @@ contract SystemInteractionsUnitTest is Fixture {
 
         // airdrop assets on a farm
         usdc.mint(address(farm1), 100e6); // 100$
+        vm.prank(farmManagerAddress);
+        farm1.deposit();
         assertEq(accounting.totalAssetsValue(), 100e18); // 100$
         assertEq(yieldSharing.unaccruedYield(), 100e18);
 
@@ -82,7 +84,7 @@ contract SystemInteractionsUnitTest is Fixture {
         vm.startPrank(alice);
         vm.warp(block.timestamp + 12);
         iusd.approve(address(gateway), 70e18);
-        gateway.redeem(alice, 70e18);
+        gateway.redeem(alice, 70e18, 0);
         vm.stopPrank();
 
         // check token movements

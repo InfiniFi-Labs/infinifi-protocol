@@ -6,6 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {Farm} from "@integrations/Farm.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {IAaveV3Pool} from "@interfaces/aave/IAaveV3Pool.sol";
 import {IAddressProvider} from "@interfaces/aave/IAddressProvider.sol";
 import {IAaveDataProvider} from "@interfaces/aave/IAaveDataProvider.sol";
@@ -15,14 +16,24 @@ import {IAaveDataProvider} from "@interfaces/aave/IAaveDataProvider.sol";
 contract AaveV3Farm is Farm {
     using SafeERC20 for IERC20;
 
+    error ZeroAddress(address);
+
+    event LendingPoolUpdated(uint256 indexed timestamp, address lendingPool);
+
     address public immutable aToken;
 
     /// @notice the aave v3 lending pool
-    address public immutable lendingPool;
+    address public lendingPool;
 
     constructor(address _aToken, address _aaveV3Pool, address _core, address _assetToken) Farm(_core, _assetToken) {
         aToken = _aToken;
         lendingPool = _aaveV3Pool;
+    }
+
+    function setLendingPool(address _lendingPool) external onlyCoreRole(CoreRoles.GOVERNOR) {
+        require(lendingPool != address(0), ZeroAddress(_lendingPool));
+        lendingPool = _lendingPool;
+        emit LendingPoolUpdated(block.timestamp, _lendingPool);
     }
 
     /// @notice Returns the rebasing balance of the aToken
@@ -57,29 +68,6 @@ contract AaveV3Farm is Farm {
         IERC20(assetToken).forceApprove(address(lendingPool), availableBalance);
         // trigger the deposit the asset tokens to the lending pool
         IAaveV3Pool(lendingPool).supply(assetToken, availableBalance, address(this), 0);
-    }
-
-    /// @notice Returns the max deposit amount for the underlying protocol
-    function _underlyingProtocolMaxDeposit() internal view override returns (uint256) {
-        // aave returns the supply cap with 0 decimals. e.g 1000 USDC supply cap returns 1000
-        address dataProvider = IAddressProvider(IAaveV3Pool(lendingPool).ADDRESSES_PROVIDER()).getPoolDataProvider();
-        (, uint256 supplyCap) = IAaveDataProvider(dataProvider).getReserveCaps(assetToken);
-
-        // aave pools that return 0 supplyCap are actually uncapped
-        if (supplyCap == 0) return type(uint256).max;
-
-        // convert the supply cap to the asset token decimals
-        uint256 supplyCapInAssetTokenDecimals = supplyCap * 10 ** ERC20(assetToken).decimals();
-
-        IAaveDataProvider.AaveDataProviderReserveData memory _reserveData =
-            IAaveDataProvider(dataProvider).getReserveData(assetToken);
-
-        // supply cap already reached
-        if (_reserveData.totalAToken + _reserveData.accruedToTreasuryScaled >= supplyCapInAssetTokenDecimals) {
-            return 0;
-        }
-
-        return supplyCapInAssetTokenDecimals - (_reserveData.totalAToken + _reserveData.accruedToTreasuryScaled);
     }
 
     /// @notice Withdraw from the aave v3 lending pool

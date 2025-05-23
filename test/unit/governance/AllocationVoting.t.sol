@@ -14,29 +14,26 @@ import {console} from "forge-std/console.sol";
 contract AllocationVotingUnitTest is Fixture {
     using EpochLib for uint256;
 
-    // Helper to prepare 50-50 votes
-    function _prepareVote(uint256 _balance)
+    AllocationVoting.AllocationVote[] liquidVotes;
+    AllocationVoting.AllocationVote[] illiquidVotes;
+
+    function _createVote(address _farm, uint96 _weight)
         internal
-        view
-        returns (AllocationVoting.AllocationVote[] memory, AllocationVoting.AllocationVote[] memory)
+        pure
+        returns (AllocationVoting.AllocationVote memory)
     {
-        uint96 weight = uint96(_balance / 2);
+        return AllocationVoting.AllocationVote({farm: _farm, weight: _weight});
+    }
 
-        AllocationVoting.AllocationVote[] memory liquidVotes = new AllocationVoting.AllocationVote[](2);
-        AllocationVoting.AllocationVote[] memory illiquidVotes = new AllocationVoting.AllocationVote[](2);
-        liquidVotes[0] = AllocationVoting.AllocationVote({farm: address(farm1), weight: weight});
-        liquidVotes[1] = AllocationVoting.AllocationVote({farm: address(farm2), weight: weight});
-        illiquidVotes[0] = AllocationVoting.AllocationVote({farm: address(illiquidFarm1), weight: weight});
-        illiquidVotes[1] = AllocationVoting.AllocationVote({farm: address(illiquidFarm2), weight: weight});
-
-        return (liquidVotes, illiquidVotes);
+    function _assertVoteEq(MockFarm _farm, uint256 _weight, string memory _message) internal view {
+        assertEq(allocationVoting.getVote(address(_farm)), _weight, _message);
     }
 
     function testInitialState() public view {
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Initial vote for farm1 is not 0");
-        assertEq(allocationVoting.getVote(address(farm2)), 0, "Error: Initial vote for farm2 is not 0");
-        assertEq(allocationVoting.getVote(address(illiquidFarm1)), 0, "Error: Initial vote for illiquidFarm1 is not 0");
-        assertEq(allocationVoting.getVote(address(illiquidFarm2)), 0, "Error: Initial vote for illiquidFarm2 is not 0");
+        _assertVoteEq(farm1, 0, "Initial vote for farm1 is not 0");
+        _assertVoteEq(farm2, 0, "Initial vote for farm2 is not 0");
+        _assertVoteEq(illiquidFarm1, 0, "Initial vote for illiquidFarm1 is not 0");
+        _assertVoteEq(illiquidFarm2, 0, "Initial vote for illiquidFarm2 is not 0");
     }
 
     function _initLocking(address _user, uint256 _amount, uint32 _unwindingEpochs) internal {
@@ -69,10 +66,11 @@ contract AllocationVotingUnitTest is Fixture {
 
     function testVote() public {
         _initAliceLocking(1000e6);
-        uint256 aliceWeight = lockingController.rewardWeight(alice);
 
-        (AllocationVoting.AllocationVote[] memory liquidVotes, AllocationVoting.AllocationVote[] memory illiquidVotes) =
-            _prepareVote(aliceWeight);
+        liquidVotes.push(_createVote(address(farm1), 0.5e18));
+        liquidVotes.push(_createVote(address(farm2), 0.5e18));
+        illiquidVotes.push(_createVote(address(illiquidFarm1), 0.5e18));
+        illiquidVotes.push(_createVote(address(illiquidFarm2), 0.5e18));
 
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(AllocationVoting.InvalidAsset.selector, address(0)));
@@ -82,6 +80,8 @@ contract AllocationVotingUnitTest is Fixture {
         vm.prank(alice);
         gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
 
+        uint256 aliceWeight = lockingController.rewardWeight(alice);
+
         // alice cannot transfer her tokens
         address shareToken = lockingController.shareToken(4);
         vm.prank(alice);
@@ -89,41 +89,18 @@ contract AllocationVotingUnitTest is Fixture {
         MockERC20(shareToken).transfer(bob, 1);
 
         // vote is not applied immediately
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Vote for farm1 should not be applied immediately");
-        assertEq(allocationVoting.getVote(address(farm2)), 0, "Error: Vote for farm2 should not be applied immediately");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)),
-            0,
-            "Error: Vote for illiquidFarm1 should not be applied immediately"
-        );
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm2)),
-            0,
-            "Error: Vote for illiquidFarm2 should not be applied immediately"
-        );
+        _assertVoteEq(farm1, 0, "Vote for farm1 should not be applied immediately");
+        _assertVoteEq(farm2, 0, "Vote for farm2 should not be applied immediately");
+        _assertVoteEq(illiquidFarm1, 0, "Vote for illiquidFarm1 should not be applied immediately");
+        _assertVoteEq(illiquidFarm2, 0, "Vote for illiquidFarm2 should not be applied immediately");
 
         // on next epoch, vote is applied
-        vm.warp(block.timestamp + EpochLib.EPOCH);
-        assertEq(
-            allocationVoting.getVote(address(farm1)),
-            aliceWeight / 2,
-            "Error: Vote for farm1 should be applied in the next epoch"
-        );
-        assertEq(
-            allocationVoting.getVote(address(farm2)),
-            aliceWeight / 2,
-            "Error: Vote for farm2 should be applied in the next epoch"
-        );
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)),
-            aliceWeight / 2,
-            "Error: Vote for illiquidFarm1 should be applied in the next epoch"
-        );
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm2)),
-            aliceWeight / 2,
-            "Error: Vote for illiquidFarm2 should be applied in the next epoch"
-        );
+        advanceEpoch(1);
+
+        _assertVoteEq(farm1, aliceWeight / 2, "Vote for farm1 should be applied in the next epoch");
+        _assertVoteEq(farm2, aliceWeight / 2, "Vote for farm2 should be applied in the next epoch");
+        _assertVoteEq(illiquidFarm1, aliceWeight / 2, "Vote for illiquidFarm1 should be applied in the next epoch");
+        _assertVoteEq(illiquidFarm2, aliceWeight / 2, "Vote for illiquidFarm2 should be applied in the next epoch");
 
         // alice can transfer her tokens again
         vm.prank(alice);
@@ -154,33 +131,25 @@ contract AllocationVotingUnitTest is Fixture {
             );
         }
 
-        assertEq(liquidFarms[0], address(farm1), "Error: farm1 address is not set correctly in liquidFarms");
-        assertEq(liquidFarms[1], address(farm2), "Error: farm2 address is not set correctly in liquidFarms");
+        assertEq(liquidFarms[0], address(farm1), "farm1 address is not set correctly in liquidFarms");
+        assertEq(liquidFarms[1], address(farm2), "farm2 address is not set correctly in liquidFarms");
         assertEq(
-            illiquidFarms[0],
-            address(illiquidFarm1),
-            "Error: illiquidFarm1 address is not set correctly in illiquidFarms"
+            illiquidFarms[0], address(illiquidFarm1), "illiquidFarm1 address is not set correctly in illiquidFarms"
         );
         assertEq(
-            illiquidFarms[1],
-            address(illiquidFarm2),
-            "Error: illiquidFarm2 address is not set correctly in illiquidFarms"
+            illiquidFarms[1], address(illiquidFarm2), "illiquidFarm2 address is not set correctly in illiquidFarms"
         );
-        assertEq(liquidWeights[0], aliceWeight / 2, "Error: liquidWeights[0] should be aliceWeight / 2");
-        assertEq(liquidWeights[1], aliceWeight / 2, "Error: liquidWeights[1] should be aliceWeight / 2");
-        assertEq(illiquidWeights[0], aliceWeight / 2, "Error: illiquidWeights[0] should be aliceWeight / 2");
-        assertEq(illiquidWeights[1], aliceWeight / 2, "Error: illiquidWeights[1] should be aliceWeight / 2");
+        assertEq(liquidWeights[0], aliceWeight / 2, "liquidWeights[0] should be aliceWeight / 2");
+        assertEq(liquidWeights[1], aliceWeight / 2, "liquidWeights[1] should be aliceWeight / 2");
+        assertEq(illiquidWeights[0], aliceWeight / 2, "illiquidWeights[0] should be aliceWeight / 2");
+        assertEq(illiquidWeights[1], aliceWeight / 2, "illiquidWeights[1] should be aliceWeight / 2");
 
         // on the epoch after, vote is discarded (have to vote every week)
-        vm.warp(block.timestamp + EpochLib.EPOCH);
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Vote for farm1 should be discarded");
-        assertEq(allocationVoting.getVote(address(farm2)), 0, "Error: Vote for farm2 should be discarded");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), 0, "Error: Vote for illiquidFarm1 should be discarded"
-        );
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm2)), 0, "Error: Vote for illiquidFarm2 should be discarded"
-        );
+        advanceEpoch(1);
+        _assertVoteEq(farm1, 0, "Vote for farm1 should be discarded");
+        _assertVoteEq(farm2, 0, "Vote for farm2 should be discarded");
+        _assertVoteEq(illiquidFarm1, 0, "Vote for illiquidFarm1 should be discarded");
+        _assertVoteEq(illiquidFarm2, 0, "Vote for illiquidFarm2 should be discarded");
     }
 
     function testMultiVote() public {
@@ -191,83 +160,86 @@ contract AllocationVotingUnitTest is Fixture {
         uint256 aliceWeight4 = lockingController.rewardWeightForUnwindingEpochs(alice, 4);
         uint256 aliceWeight8 = lockingController.rewardWeightForUnwindingEpochs(alice, 8);
 
-        (AllocationVoting.AllocationVote[] memory liquidVotes4, AllocationVoting.AllocationVote[] memory illiquidVotes4)
-        = _prepareVote(aliceWeight4);
-        (AllocationVoting.AllocationVote[] memory liquidVotes8, AllocationVoting.AllocationVote[] memory illiquidVotes8)
-        = _prepareVote(aliceWeight8);
+        AllocationVoting.AllocationVote[][] memory batchLiquidVotes = new AllocationVoting.AllocationVote[][](2);
+        AllocationVoting.AllocationVote[][] memory batchIlliquidVotes = new AllocationVoting.AllocationVote[][](2);
+        liquidVotes.push(_createVote(address(farm1), 0.5e18));
+        liquidVotes.push(_createVote(address(farm2), 0.5e18));
+        batchLiquidVotes[0] = liquidVotes;
+        batchLiquidVotes[1] = liquidVotes;
 
-        // cast votes
+        illiquidVotes.push(_createVote(address(illiquidFarm1), 0.5e18));
+        illiquidVotes.push(_createVote(address(illiquidFarm2), 0.5e18));
+        batchIlliquidVotes[0] = illiquidVotes;
+        batchIlliquidVotes[1] = illiquidVotes;
+
         address[] memory assets = new address[](2);
         assets[0] = address(usdc);
         assets[1] = address(usdc);
         uint32[] memory unwindingEpochs = new uint32[](2);
         unwindingEpochs[0] = 4;
         unwindingEpochs[1] = 8;
-        AllocationVoting.AllocationVote[][] memory liquidVotes = new AllocationVoting.AllocationVote[][](2);
-        liquidVotes[0] = liquidVotes4;
-        liquidVotes[1] = liquidVotes8;
-        AllocationVoting.AllocationVote[][] memory illiquidVotes = new AllocationVoting.AllocationVote[][](2);
-        illiquidVotes[0] = illiquidVotes4;
-        illiquidVotes[1] = illiquidVotes8;
 
         vm.prank(alice);
-        gateway.multiVote(assets, unwindingEpochs, liquidVotes, illiquidVotes);
+        gateway.multiVote(assets, unwindingEpochs, batchLiquidVotes, batchIlliquidVotes);
 
         // check votes
         advanceEpoch(1);
 
-        assertEq(
-            allocationVoting.getVote(address(farm1)),
-            aliceWeight4 / 2 + aliceWeight8 / 2,
-            "Error: Vote for farm1 is incorrect"
-        );
-        assertEq(
-            allocationVoting.getVote(address(farm2)),
-            aliceWeight4 / 2 + aliceWeight8 / 2,
-            "Error: Vote for farm2 is incorrect"
-        );
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)),
-            aliceWeight4 / 2 + aliceWeight8 / 2,
-            "Error: Vote for illiquidFarm1 is incorrect"
-        );
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm2)),
-            aliceWeight4 / 2 + aliceWeight8 / 2,
-            "Error: Vote for illiquidFarm2 is incorrect"
-        );
+        _assertVoteEq(farm1, aliceWeight4 / 2 + aliceWeight8 / 2, "Vote for farm1 is incorrect");
+        _assertVoteEq(farm2, aliceWeight4 / 2 + aliceWeight8 / 2, "Vote for farm2 is incorrect");
+        _assertVoteEq(illiquidFarm1, aliceWeight4 / 2 + aliceWeight8 / 2, "Vote for illiquidFarm1 is incorrect");
+        _assertVoteEq(illiquidFarm2, aliceWeight4 / 2 + aliceWeight8 / 2, "Vote for illiquidFarm2 is incorrect");
     }
 
     function testMaturityChecks() public {
         _initAliceLocking(1000e6);
-        uint256 aliceWeight = lockingController.rewardWeight(alice);
-
-        uint256 farmMaturity = block.timestamp + EpochLib.EPOCH * 6;
+        uint256 farmMaturity = block.timestamp + EpochLib.EPOCH * 5;
         illiquidFarm1.mockSetMaturity(farmMaturity);
 
         // alice cannot cast a vote for illiquidFarm1 because maturity is
         // too far into the future
-        (AllocationVoting.AllocationVote[] memory liquidVotes, AllocationVoting.AllocationVote[] memory illiquidVotes) =
-            _prepareVote(aliceWeight);
+        liquidVotes.push(_createVote(address(farm1), 0.5e18));
+        liquidVotes.push(_createVote(address(farm2), 0.5e18));
+        illiquidVotes.push(_createVote(address(illiquidFarm1), 0.5e18));
+        illiquidVotes.push(_createVote(address(illiquidFarm2), 0.5e18));
+
         vm.startPrank(alice);
         vm.expectRevert(
             abi.encodeWithSelector(
                 AllocationVoting.InvalidTargetBucket.selector,
                 address(illiquidFarm1),
                 farmMaturity,
-                (block.timestamp.epoch() + 4).epochToTimestamp()
+                (block.timestamp.nextEpoch() + 4).epochToTimestamp()
             )
         );
         gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
+
+        // alice can vote if the maturity is exactly equal to her number of unwindign epochs
+        illiquidFarm1.mockSetMaturity(block.timestamp + EpochLib.EPOCH * 4);
+        gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
+    }
+
+    function testMaturityEdgeCase() public {
+        _initAliceLocking(1000e6);
+        uint256 farmMaturity = (block.timestamp.nextEpoch() + 4).epochToTimestamp();
+        illiquidFarm1.mockSetMaturity(farmMaturity);
+
+        illiquidVotes.push(_createVote(address(illiquidFarm1), 0.5e18));
+        illiquidVotes.push(_createVote(address(illiquidFarm2), 0.5e18));
+
+        vm.prank(alice);
+        gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
+
+        uint256 actualTimeGap = farmMaturity.epoch() - block.timestamp.nextEpoch();
+
+        assertEq(actualTimeGap, 4, "User should be able to vote for 4 week assets");
     }
 
     function testVoteWithUnknownFarm() public {
         _initAliceLocking(1000e6);
-        uint256 aliceWeight = lockingController.rewardWeight(alice);
 
-        AllocationVoting.AllocationVote[] memory liquidVotes = new AllocationVoting.AllocationVote[](1);
-        liquidVotes[0] = AllocationVoting.AllocationVote({farm: address(0x123), weight: uint96(aliceWeight)});
-        AllocationVoting.AllocationVote[] memory illiquidVotes = new AllocationVoting.AllocationVote[](0);
+        liquidVotes.push(_createVote(address(0x123), 1e18));
+        illiquidVotes.push(_createVote(address(0x123), 1e18));
 
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(AllocationVoting.UnknownFarm.selector, address(0x123), true));
@@ -276,9 +248,8 @@ contract AllocationVotingUnitTest is Fixture {
 
     function testVoteWithNoVotingPower() public {
         // Try to vote without having any locked tokens
-        AllocationVoting.AllocationVote[] memory liquidVotes = new AllocationVoting.AllocationVote[](1);
-        liquidVotes[0] = AllocationVoting.AllocationVote({farm: address(farm1), weight: 100});
-        AllocationVoting.AllocationVote[] memory illiquidVotes = new AllocationVoting.AllocationVote[](0);
+        liquidVotes.push(_createVote(address(farm1), 1e18));
+        illiquidVotes.push(_createVote(address(illiquidFarm1), 1e18));
 
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(AllocationVoting.NoVotingPower.selector, alice, 4));
@@ -287,16 +258,13 @@ contract AllocationVotingUnitTest is Fixture {
 
     function testVoteWithInvalidWeights() public {
         _initAliceLocking(1000e6);
-        uint256 aliceWeight = lockingController.rewardWeight(alice);
 
         // Create votes with total weight more than user's voting power
-        AllocationVoting.AllocationVote[] memory liquidVotes = new AllocationVoting.AllocationVote[](2);
-        liquidVotes[0] = AllocationVoting.AllocationVote({farm: address(farm1), weight: uint96(aliceWeight)});
-        liquidVotes[1] = AllocationVoting.AllocationVote({farm: address(farm2), weight: uint96(aliceWeight)});
-        AllocationVoting.AllocationVote[] memory illiquidVotes = new AllocationVoting.AllocationVote[](0);
+        liquidVotes.push(_createVote(address(farm1), 0.6e18));
+        liquidVotes.push(_createVote(address(farm2), 0.5e18));
 
         vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSelector(AllocationVoting.InvalidWeights.selector, aliceWeight, aliceWeight * 2));
+        vm.expectRevert(abi.encodeWithSelector(AllocationVoting.InvalidWeights.selector, 1e18, 1.1e18));
         gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
     }
 
@@ -321,23 +289,23 @@ contract AllocationVotingUnitTest is Fixture {
         uint96 weight = uint96(aliceWeight / 2);
 
         // Vote for first asset
-        AllocationVoting.AllocationVote[] memory firstAssetVotes = new AllocationVoting.AllocationVote[](2);
-        firstAssetVotes[0] = AllocationVoting.AllocationVote({farm: address(farm1), weight: weight});
-        firstAssetVotes[1] = AllocationVoting.AllocationVote({farm: address(farm2), weight: weight});
+        liquidVotes.push(_createVote(address(farm1), 0.5e18));
+        liquidVotes.push(_createVote(address(farm2), 0.5e18));
 
         vm.prank(alice);
-        gateway.vote(address(usdc), 4, firstAssetVotes, new AllocationVoting.AllocationVote[](0));
+        gateway.vote(address(usdc), 4, liquidVotes, new AllocationVoting.AllocationVote[](0));
+
+        delete liquidVotes;
 
         // Vote for second asset
-        AllocationVoting.AllocationVote[] memory secondAssetVotes = new AllocationVoting.AllocationVote[](2);
-        secondAssetVotes[0] = AllocationVoting.AllocationVote({farm: address(secondFarm1), weight: weight});
-        secondAssetVotes[1] = AllocationVoting.AllocationVote({farm: address(secondFarm2), weight: weight});
+        liquidVotes.push(_createVote(address(secondFarm1), 0.5e18));
+        liquidVotes.push(_createVote(address(secondFarm2), 0.5e18));
 
         vm.prank(bob);
-        gateway.vote(address(secondAsset), 4, secondAssetVotes, new AllocationVoting.AllocationVote[](0));
+        gateway.vote(address(secondAsset), 4, liquidVotes, new AllocationVoting.AllocationVote[](0));
 
         // Verify votes are tracked separately per asset
-        vm.warp(block.timestamp + EpochLib.EPOCH);
+        advanceEpoch(1);
 
         (address[] memory firstAssetFarms, uint256[] memory firstAssetWeights,) =
             allocationVoting.getAssetVoteWeights(address(usdc), FarmTypes.LIQUID);
@@ -360,25 +328,22 @@ contract AllocationVotingUnitTest is Fixture {
         uint256 aliceWeight = lockingController.rewardWeight(alice);
 
         // Create votes with zero weights
-        AllocationVoting.AllocationVote[] memory liquidVotes = new AllocationVoting.AllocationVote[](2);
-        liquidVotes[0] = AllocationVoting.AllocationVote({farm: address(farm1), weight: 0});
-        liquidVotes[1] = AllocationVoting.AllocationVote({farm: address(farm2), weight: uint96(aliceWeight)});
-        AllocationVoting.AllocationVote[] memory illiquidVotes = new AllocationVoting.AllocationVote[](0);
+        liquidVotes.push(_createVote(address(farm1), 0));
+        liquidVotes.push(_createVote(address(farm2), 1e18));
 
         vm.prank(alice);
         gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
 
-        vm.warp(block.timestamp + EpochLib.EPOCH);
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Vote weight should be zero for farm1");
-        assertEq(allocationVoting.getVote(address(farm2)), aliceWeight, "Vote weight should be full for farm2");
+        advanceEpoch(1);
+        _assertVoteEq(farm1, 0, "Vote weight should be zero for farm1");
+        _assertVoteEq(farm2, aliceWeight, "Vote weight should be full for farm2");
     }
 
     function testVoteWhenPaused() public {
         _initAliceLocking(1000e6);
-        uint256 aliceWeight = lockingController.rewardWeight(alice);
 
-        (AllocationVoting.AllocationVote[] memory liquidVotes, AllocationVoting.AllocationVote[] memory illiquidVotes) =
-            _prepareVote(aliceWeight);
+        liquidVotes.push(_createVote(address(farm1), 0.5e18));
+        liquidVotes.push(_createVote(address(farm2), 0.5e18));
 
         // Pause the contract
         vm.prank(guardianAddress);
@@ -405,64 +370,79 @@ contract AllocationVotingUnitTest is Fixture {
         _initAliceLocking(1000e6);
         uint256 aliceWeight = lockingController.rewardWeight(alice);
 
-        AllocationVoting.AllocationVote[] memory liquidVotes = new AllocationVoting.AllocationVote[](1);
-        AllocationVoting.AllocationVote[] memory illiquidVotes = new AllocationVoting.AllocationVote[](1);
-        liquidVotes[0] = AllocationVoting.AllocationVote({farm: address(farm1), weight: uint96(aliceWeight)});
-        illiquidVotes[0] = AllocationVoting.AllocationVote({farm: address(illiquidFarm1), weight: uint96(aliceWeight)});
+        liquidVotes.push(_createVote(address(farm1), 1e18));
+        illiquidVotes.push(_createVote(address(illiquidFarm1), 1e18));
 
         // cast vote
         vm.prank(alice);
         gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
 
         // Votes should not apply yet
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Vote for farm1 should not apply yet");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), 0, "Error: Vote for illiquidFarm1 should not apply yet"
-        );
+        _assertVoteEq(farm1, 0, "Vote for farm1 should not apply yet");
+        _assertVoteEq(illiquidFarm1, 0, "Vote for illiquidFarm1 should not apply yet");
 
         advanceEpoch(1);
 
         // Vote should apply now
-
-        assertEq(allocationVoting.getVote(address(farm1)), aliceWeight, "Error: Vote for farm1 should apply");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), aliceWeight, "Error: Vote for illiquidFarm1 should apply"
-        );
+        _assertVoteEq(farm1, aliceWeight, "Vote for farm1 should apply");
+        _assertVoteEq(illiquidFarm1, aliceWeight, "Vote for illiquidFarm1 should apply");
 
         // Move past lockup
         advanceEpoch(4);
 
         // Votes should be discarded
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Vote for farm1 should be discarded (1)");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), 0, "Error: Vote for illiquidFarm1 should be discarded (1)"
-        );
+        _assertVoteEq(farm1, 0, "Vote for farm1 should be discarded (1)");
+        _assertVoteEq(illiquidFarm1, 0, "Vote for illiquidFarm1 should be discarded (1)");
 
         // Vote again
         vm.prank(alice);
         gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
 
         // Votes should still be discarded on the epoch of the vote
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Vote for farm1 should be discarded (2)");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), 0, "Error: Vote for illiquidFarm1 should be discarded (2)"
-        );
+        _assertVoteEq(farm1, 0, "Vote for farm1 should be discarded (2)");
+        _assertVoteEq(illiquidFarm1, 0, "Vote for illiquidFarm1 should be discarded (2)");
 
         advanceEpoch(1);
 
         // Vote should apply now
 
-        assertEq(allocationVoting.getVote(address(farm1)), aliceWeight, "Error: Vote for farm1 should apply");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), aliceWeight, "Error: Vote for illiquidFarm1 should apply"
-        );
+        _assertVoteEq(farm1, aliceWeight, "Vote for farm1 should apply");
+        _assertVoteEq(illiquidFarm1, aliceWeight, "Vote for illiquidFarm1 should apply");
 
         advanceEpoch(1);
 
         // Votes should be discarded
-        assertEq(allocationVoting.getVote(address(farm1)), 0, "Error: Vote for farm1 should be discarded (3)");
-        assertEq(
-            allocationVoting.getVote(address(illiquidFarm1)), 0, "Error: Vote for illiquidFarm1 should be discarded (3)"
+        _assertVoteEq(farm1, 0, "Vote for farm1 should be discarded (3)");
+        _assertVoteEq(illiquidFarm1, 0, "Vote for illiquidFarm1 should be discarded (3)");
+    }
+
+    function testVoteFuzz(uint256 _percentage1, uint256 _percentage2, uint256 _assetAmount) public {
+        _assetAmount = bound(_assetAmount, 1e6, 10000000e6);
+        _percentage1 = bound(_percentage1, 0, 1e18);
+        _percentage2 = bound(_percentage2, 0, 1e18 - _percentage1);
+        uint256 _percentage3 = 1e18 - _percentage1 - _percentage2;
+
+        _initAliceLocking(_assetAmount);
+
+        uint256 aliceWeight = lockingController.rewardWeight(alice);
+
+        liquidVotes.push(_createVote(address(farm1), uint96(_percentage1)));
+        liquidVotes.push(_createVote(address(farm2), uint96(_percentage2)));
+        liquidVotes.push(_createVote(address(farm2), uint96(_percentage3)));
+
+        vm.prank(alice);
+        gateway.vote(address(usdc), 4, liquidVotes, illiquidVotes);
+
+        advanceEpoch(1);
+
+        uint256 farm1AllocatedVote = allocationVoting.getVote(address(farm1));
+        uint256 farm2AllocatedVote = allocationVoting.getVote(address(farm2));
+
+        uint256 totalAllocatedVote = farm1AllocatedVote + farm2AllocatedVote;
+
+        // allow for some rounding error up to 2 wei
+        assertApproxEqAbs(
+            totalAllocatedVote, aliceWeight, 2, "Total allocated vote should be almost equal to committed voting power"
         );
     }
 }

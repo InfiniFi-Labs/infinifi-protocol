@@ -26,7 +26,9 @@ import {FixedPriceOracle} from "@finance/oracles/FixedPriceOracle.sol";
 import {ManualRebalancer} from "@integrations/farms/movement/ManualRebalancer.sol";
 import {LockingController} from "@locking/LockingController.sol";
 import {InfiniFiGatewayV1} from "@gateway/InfiniFiGatewayV1.sol";
+import {MinorRolesManager} from "@governance/MinorRolesManager.sol";
 import {LockedPositionToken} from "@tokens/LockedPositionToken.sol";
+import {EmergencyWithdrawal} from "@integrations/farms/movement/EmergencyWithdrawal.sol";
 
 // Main Fixture and configuration for preparing test environment
 abstract contract Fixture is InfiniFiTest {
@@ -64,6 +66,8 @@ abstract contract Fixture is InfiniFiTest {
     AllocationVoting public allocationVoting;
     Timelock public longTimelock;
     InfiniFiGatewayV1 public gateway;
+    MinorRolesManager public minorRolesManager;
+    EmergencyWithdrawal public emergencyWithdrawal;
 
     // this function is required to ignore this file from coverage
     function test() public pure virtual override {}
@@ -107,6 +111,8 @@ abstract contract Fixture is InfiniFiTest {
                 )
             )
         );
+        minorRolesManager = new MinorRolesManager(address(core));
+        emergencyWithdrawal = new EmergencyWithdrawal(address(core), address(mintController));
 
         // labels
         vm.label(address(core), "core");
@@ -128,11 +134,17 @@ abstract contract Fixture is InfiniFiTest {
         vm.label(address(unwindingModule), "unwindingModule");
         vm.label(address(longTimelock), "longTimelock");
         vm.label(address(gateway), "gateway");
+        vm.label(address(minorRolesManager), "minorRolesManager");
+        vm.label(address(emergencyWithdrawal), "emergencyWithdrawal");
 
         // configure access control
         core.grantRole(CoreRoles.GOVERNOR, governorAddress);
+        core.grantRole(CoreRoles.GOVERNOR, address(minorRolesManager));
         core.grantRole(CoreRoles.PAUSE, guardianAddress);
+        core.grantRole(CoreRoles.PAUSE, address(emergencyWithdrawal));
         core.grantRole(CoreRoles.UNPAUSE, guardianAddress);
+        core.grantRole(CoreRoles.UNPAUSE, address(emergencyWithdrawal));
+        core.grantRole(CoreRoles.MINOR_ROLES_MANAGER, msig);
         core.grantRole(CoreRoles.PROTOCOL_PARAMETERS, parametersAddress);
         core.grantRole(CoreRoles.ENTRY_POINT, address(gateway));
         core.grantRole(CoreRoles.RECEIPT_TOKEN_MINTER, address(yieldSharing));
@@ -143,8 +155,10 @@ abstract contract Fixture is InfiniFiTest {
         core.grantRole(CoreRoles.TRANSFER_RESTRICTOR, address(allocationVoting));
         core.grantRole(CoreRoles.FARM_MANAGER, address(manualRebalancer));
         core.grantRole(CoreRoles.FARM_MANAGER, farmManagerAddress);
+        core.grantRole(CoreRoles.FARM_MANAGER, address(emergencyWithdrawal));
         core.grantRole(CoreRoles.MANUAL_REBALANCER, msig);
         core.grantRole(CoreRoles.PERIODIC_REBALANCER, keeper);
+        core.grantRole(CoreRoles.EMERGENCY_WITHDRAWAL, msig);
         core.grantRole(CoreRoles.FARM_SWAP_CALLER, msig);
         core.grantRole(CoreRoles.ORACLE_MANAGER, oracleManagerAddress);
         core.grantRole(CoreRoles.ORACLE_MANAGER, address(yieldSharing));

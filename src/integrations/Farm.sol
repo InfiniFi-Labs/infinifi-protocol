@@ -67,10 +67,7 @@ abstract contract Farm is CoreControlled, IFarm {
         if (currentAssets >= cap) {
             return 0;
         }
-        // If the underlying protocol has a max deposit, use that instead of the cap
-        uint256 underlyingProtocolMaxDeposit = _underlyingProtocolMaxDeposit();
-        uint256 defaultMaxDeposit = cap - currentAssets;
-        return underlyingProtocolMaxDeposit < defaultMaxDeposit ? underlyingProtocolMaxDeposit : defaultMaxDeposit;
+        return cap - currentAssets;
     }
 
     function deposit() external virtual onlyCoreRole(CoreRoles.FARM_MANAGER) whenNotPaused {
@@ -95,16 +92,13 @@ abstract contract Farm is CoreControlled, IFarm {
 
     function _deposit(uint256 assetsToDeposit) internal virtual;
 
-    function _underlyingProtocolMaxDeposit() internal view virtual returns (uint256) {
-        return type(uint256).max;
-    }
-
     function withdraw(uint256 amount, address to) external virtual onlyCoreRole(CoreRoles.FARM_MANAGER) whenNotPaused {
         uint256 assetsBefore = assets();
 
         _withdraw(amount, to);
 
         uint256 assetsAfter = assets();
+
         uint256 assetsSpent = assetsBefore - assetsAfter;
 
         uint256 minAssetsOut = assetsSpent.mulWadDown(maxSlippage);
