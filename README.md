@@ -1,4 +1,4 @@
-# InfiniFi Protocol Audit
+# InfiniFi Protocol
 
 ## Overview
 
