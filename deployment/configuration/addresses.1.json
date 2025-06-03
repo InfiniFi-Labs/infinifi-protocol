@@ -1,0 +1,282 @@
+[
+  {
+    "addr": "0xdecaDAc8778D088A30eE811b8Cc4eE72cED9Bf22",
+    "name": "DEPLOYER"
+  },
+  {
+    "addr": "0x0000000000000000000000000000000000000000",
+    "name": "ZERO_ADDRESS"
+  },
+  {
+    "addr": "0x80608f852D152024c0a2087b16939235fEc2400c",
+    "name": "TEAM_MULTISIG"
+  },
+  {
+    "addr": "0x73455e5Fc7e4cbfDe65A72Ff17f76393DC6A2cbB",
+    "name": "KEEPER_SWAP"
+  },
+  {
+    "addr": "0x2Cba0C86ED78f95fFF5fC0c18FE0E6343479aB1a",
+    "name": "KEEPER_REBALANCE"
+  },
+  {
+    "addr": "0x383965940c950008a4B67BfaA477Fdf6AC91a7F7",
+    "name": "PAUSER_1"
+  },
+  {
+    "addr": "0xd53Ffb2DB125015aB4D461bAD3fA959Ef1a1e685",
+    "name": "PAUSER_2"
+  },
+  {
+    "addr": "0x6ef71cA9cD708883E129559F5edBFb9d9D5C6148",
+    "name": "PAUSER_3"
+  },
+  {
+    "addr": "0x0652412777f0c1F46b1164d5cdF3295Bdf43F2f2",
+    "name": "PAUSER_4"
+  },
+  {
+    "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "name": "ERC20_USDC"
+  },
+  {
+    "addr": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
+    "name": "ERC20_USDE"
+  },
+  {
+    "addr": "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497",
+    "name": "ERC20_SUSDE"
+  },
+  {
+    "addr": "0x8238884Ec9668Ef77B90C6dfF4D1a9F4F4823BFe",
+    "name": "ERC20_USDO"
+  },
+  {
+    "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
+    "name": "ROUTER_KYBER"
+  },
+  {
+    "addr": "0x888888888889758F76e7103c6CbF23ABbF58F946",
+    "name": "ROUTER_PENDLE"
+  },
+  {
+    "addr": "0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2",
+    "name": "PENDLE_ORACLE"
+  },
+  {
+    "addr": "0x9008D19f58AAbD9eD0D60971565AA8510560ab41",
+    "name": "COW_SETTLEMENT"
+  },
+  {
+    "addr": "0xC92E8bdf79f0507f65a392b0ab4667716BFE0110",
+    "name": "COW_VAULT_RELAYER"
+  },
+  {
+    "addr": "0xF6d48735EcCf12bDC1DF2674b1ce3fcb3bD25490",
+    "name": "CORE"
+  },
+  {
+    "addr": "0x4B174afbeD7b98BA01F50E36109EEE5e6d327c32",
+    "name": "TIMELOCK_SHORT"
+  },
+  {
+    "addr": "0x3D18480CC32B6AB3B833dCabD80E76CfD41c48a9",
+    "name": "TIMELOCK_LONG"
+  },
+  {
+    "addr": "0xF5f2718708f471e43968271956CC01aaA8c46119",
+    "name": "FARM_REGISTRY"
+  },
+  {
+    "addr": "0x160300d5C1eA377B823127d2D6668D43DD5C1d8A",
+    "name": "MANUAL_REBALANCER"
+  },
+  {
+    "addr": "0x48f9e38f3070AD8945DFEae3FA70987722E3D89c",
+    "name": "RECEIPT_TOKEN"
+  },
+  {
+    "addr": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB",
+    "name": "STAKED_TOKEN"
+  },
+  {
+    "addr": "0x12b004719fb632f1E7c010c6F5D6009Fb4258442",
+    "name": "LOCKED_POSITION_TOKEN_1"
+  },
+  {
+    "addr": "0xf1839BeCaF586814D022F16cDb3504ff8D8Ff361",
+    "name": "LOCKED_POSITION_TOKEN_2"
+  },
+  {
+    "addr": "0xed2a360FfDC1eD4F8df0bd776a1FfbbE06444a0A",
+    "name": "LOCKED_POSITION_TOKEN_3"
+  },
+  {
+    "addr": "0x66bCF6151D5558AfB47c38B20663589843156078",
+    "name": "LOCKED_POSITION_TOKEN_4"
+  },
+  {
+    "addr": "0xf0c4A78fEbf4062aeD39A02BE8a4C72E9857d7d1",
+    "name": "LOCKED_POSITION_TOKEN_5"
+  },
+  {
+    "addr": "0xb06Cc4548FebfF3D66a680F9c516381c79bC9707",
+    "name": "LOCKED_POSITION_TOKEN_6"
+  },
+  {
+    "addr": "0x3A744A6b57984eb62AeB36eB6501d268372cF8bb",
+    "name": "LOCKED_POSITION_TOKEN_7"
+  },
+  {
+    "addr": "0xf68b95b7e851170c0e5123a3249dD1Ca46215085",
+    "name": "LOCKED_POSITION_TOKEN_8"
+  },
+  {
+    "addr": "0xBB5cA732fAfEd8870F9C0e8406Ad707939c912E1",
+    "name": "LOCKED_POSITION_TOKEN_9"
+  },
+  {
+    "addr": "0xd15fbf48c6dDdADC9Ef0693B060d80aF51cC26d5",
+    "name": "LOCKED_POSITION_TOKEN_10"
+  },
+  {
+    "addr": "0xed030a37Ec6EB308A416Dc64dD4b649A2BBE4FCd",
+    "name": "LOCKED_POSITION_TOKEN_11"
+  },
+  {
+    "addr": "0x3D360aB96B942c1251Ab061178F731eFEbc2d644",
+    "name": "LOCKED_POSITION_TOKEN_12"
+  },
+  {
+    "addr": "0xbd3f9814eB946E617f1d774A6762cDbec0bf087A",
+    "name": "LOCKED_POSITION_TOKEN_13"
+  },
+  {
+    "addr": "0x7092A43aE5407666C78dBEA657a1891f42b3dFcc",
+    "name": "UNWINDING_MODULE"
+  },
+  {
+    "addr": "0x1d95cC100D6Cd9C7BbDbD7Cb328d99b3D6037fF7",
+    "name": "LOCKING_CONTROLLER"
+  },
+  {
+    "addr": "0x7A5C5dbA4fbD0e1e1A2eCDBe752fAe55f6E842B3",
+    "name": "ACCOUNTING"
+  },
+  {
+    "addr": "0x9e8b926A0EB276eB380fb8282eA20c2A2faea967",
+    "name": "YIELD_SHARING"
+  },
+  {
+    "addr": "0x8ABc952f91dB6695E765744ae340BC5eA4B344c1",
+    "name": "ORACLE_IUSD"
+  },
+  {
+    "addr": "0x64b32f8198a4c89B1F10de7470Ff281513e2e8f5",
+    "name": "ORACLE_USDC"
+  },
+  {
+    "addr": "0x49FA678BB8B2F5F8089493a6f93e1bb8500FF853",
+    "name": "ALLOCATION_VOTING"
+  },
+  {
+    "addr": "0x49877d937B9a00d50557bdC3D87287b5c3a4C256",
+    "name": "MINT_CONTROLLER"
+  },
+  {
+    "addr": "0xCb1747E89a43DEdcF4A2b831a0D94859EFeC7601",
+    "name": "REDEEM_CONTROLLER"
+  },
+  {
+    "addr": "0xa5E274E6c2AbBd30E3A94e1A2dF7e6F5944797a8",
+    "name": "AFTER_MINT_HOOK"
+  },
+  {
+    "addr": "0x4b2bFe49829dE3632449928507452EE667f61395",
+    "name": "BEFORE_REDEEM_HOOK"
+  },
+  {
+    "addr": "0x7954D563cbD9ee121a77805BCe5fe3c44F296D33",
+    "name": "GATEWAY_IMPLEMENTATION_V1"
+  },
+  {
+    "addr": "0x3f04b65Ddbd87f9CE0A2e7Eb24d80e7fb87625b5",
+    "name": "GATEWAY_PROXY"
+  },
+  {
+    "addr": "0xa406aFC7967C63C5c454AD1f0e0dB9a761fe26e9",
+    "name": "EMERGENCY_WITHDRAWAL"
+  },
+  {
+    "addr": "0xa08Bf802dCecd3c44E6420a52d5158867366be9b",
+    "name": "MINOR_ROLES_MANAGER"
+  },
+  {
+    "addr": "0x51Fc27C676C25C388735a51b760d64fE0acFf758",
+    "name": "ORACLE_USDE"
+  },
+  {
+    "addr": "0xefE74995689f850123f67C73d61C64B03a7Dce17",
+    "name": "ORACLE_SUSDE"
+  },
+  {
+    "addr": "0x2630bbF66fc421E42DfffD370994fE1938D05083",
+    "name": "ORACLE_USDO"
+  },
+  {
+    "addr": "0xbFd5FC8DecA3C6128bfCE0FE46c25616811c3580",
+    "name": "FARM_AAVEV3"
+  },
+  {
+    "addr": "0x05b9E728e93D090Aa896B96D96Ad215b6Ca97e93",
+    "name": "FARM_MORPHO_SMOKEHOUSE"
+  },
+  {
+    "addr": "0xF7F724fdb7562850E2b068E0a52EC79a768AB884",
+    "name": "FARM_MORPHO_GAUNTLETCORE"
+  },
+  {
+    "addr": "0x1D2ED96Cd1F9f89668978B8cf52B5F2E4eED9F5C",
+    "name": "FARM_MORPHO_GAUNTLETFRONTIER"
+  },
+  {
+    "addr": "0xBAfdc42C84Da2A79C5e72F25F610D84452e8d527",
+    "name": "FARM_EULER_GAUNTLETYIELD"
+  },
+  {
+    "addr": "0x082dE04C51d3d5332AF2d046923496B05cE00BB3",
+    "name": "FARM_EULER_GAUNTLETPRIME"
+  },
+  {
+    "addr": "0x1484d6C834Ac99B9E50B17e57F85C8603F65657A",
+    "name": "FARM_FLUID"
+  },
+  {
+    "addr": "0x08ce17d83b3BEbb1C43A55a054d656ecBEbAffA7",
+    "name": "FARM_COWSWAP_SUSDE"
+  },
+  {
+    "addr": "0xCfdD5c03D640e4ecEF25f32C12411f71B976A4F5",
+    "name": "FARM_PENDLEV2_SUSDE_20250731"
+  },
+  {
+    "addr": "0xc39fb0D8597adDB96Ab599eCA23a1556De17Bfe3",
+    "name": "FARM_PENDLEV2_USDE_20250731"
+  },
+  {
+    "addr": "0xCCD2D84b9Ecec546Eacb7fb3e17f74Ac86B33728",
+    "name": "FARM_PENDLEV2_USDO_20250619"
+  },
+  {
+    "addr": "0xE611D7DF6f6988cFCe36030061764c686E6f725C",
+    "name": "FARM_PENDLEV2_EUSDE_20250814"
+  },
+  {
+    "addr": "0x7BA3Bc4E47F9c44847Caf58bA2e3957D984995A5",
+    "name": "FARM_PENDLEV2_SYRUPUSDC_20250821"
+  },
+  {
+    "addr": "0x56af923033cbe7F6b83AEb9cBD7621076Fb26647",
+    "name": "LPT_CURVE_ORACLE_V1"
+  }
+]
