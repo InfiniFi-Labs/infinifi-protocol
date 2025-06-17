@@ -40,6 +40,10 @@
     "name": "ERC20_USDC"
   },
   {
+    "addr": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
+    "name": "ERC20_USDS"
+  },
+  {
     "addr": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
     "name": "ERC20_USDE"
   },
@@ -168,6 +172,10 @@
     "name": "YIELD_SHARING"
   },
   {
+    "addr": "0x1cb9ED33924741F500E739e38c3215a76cD1f579",
+    "name": "YIELD_SHARING_V2"
+  },
+  {
     "addr": "0x8ABc952f91dB6695E765744ae340BC5eA4B344c1",
     "name": "ORACLE_IUSD"
   },
@@ -200,8 +208,16 @@
     "name": "GATEWAY_IMPLEMENTATION_V1"
   },
   {
+    "addr": "0xd04B37F673C42BAa46923fe74a830BAe721fb41F",
+    "name": "GATEWAY_IMPLEMENTATION_V2"
+  },
+  {
     "addr": "0x3f04b65Ddbd87f9CE0A2e7Eb24d80e7fb87625b5",
     "name": "GATEWAY_PROXY"
+  },
+  {
+    "addr": "0x21071E0f9D600571Ffe47873e95fffF2FAc9141c",
+    "name": "GATEWAY_PROXY_ADMIN"
   },
   {
     "addr": "0xa406aFC7967C63C5c454AD1f0e0dB9a761fe26e9",
@@ -222,6 +238,10 @@
   {
     "addr": "0x2630bbF66fc421E42DfffD370994fE1938D05083",
     "name": "ORACLE_USDO"
+  },
+  {
+    "addr": "0xd15270F54807880C0e4eD6e076463b3f00a3A79B",
+    "name": "ORACLE_USDS"
   },
   {
     "addr": "0xbFd5FC8DecA3C6128bfCE0FE46c25616811c3580",
@@ -252,6 +272,10 @@
     "name": "FARM_FLUID"
   },
   {
+    "addr": "0x4F6900Bbb52Cd514A7eB41aDC6b367de7919aD88",
+    "name": "FARM_SPARK_SUSDC"
+  },
+  {
     "addr": "0x08ce17d83b3BEbb1C43A55a054d656ecBEbAffA7",
     "name": "FARM_COWSWAP_SUSDE"
   },
@@ -274,6 +298,10 @@
   {
     "addr": "0x7BA3Bc4E47F9c44847Caf58bA2e3957D984995A5",
     "name": "FARM_PENDLEV2_SYRUPUSDC_20250821"
+  },
+  {
+    "addr": "0x79a1141f29a849Df99daB9620dC119Ad040ae271",
+    "name": "FARM_PENDLEV2_USDS_20250814"
   },
   {
     "addr": "0x56af923033cbe7F6b83AEb9cBD7621076Fb26647",
