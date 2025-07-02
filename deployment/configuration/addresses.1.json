@@ -56,6 +56,22 @@
     "name": "ERC20_USDO"
   },
   {
+    "addr": "0x7C1156E515aA1A2E851674120074968C905aAF37",
+    "name": "ERC20_LVLUSD"
+  },
+  {
+    "addr": "0x4737D9b4592B40d51e110b94c9C043c6654067Ae",
+    "name": "ERC20_SLVLUSD"
+  },
+  {
+    "addr": "0x66a1E37c9b0eAddca17d3662D6c05F4DECf3e110",
+    "name": "ERC20_USR"
+  },
+  {
+    "addr": "0x1202F5C7b4B9E47a1A484E8B270be34dbbC75055",
+    "name": "ERC20_WSTUSR"
+  },
+  {
     "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
     "name": "ROUTER_KYBER"
   },
@@ -184,6 +200,30 @@
     "name": "ORACLE_USDC"
   },
   {
+    "addr": "0x51Fc27C676C25C388735a51b760d64fE0acFf758",
+    "name": "ORACLE_USDE"
+  },
+  {
+    "addr": "0xefE74995689f850123f67C73d61C64B03a7Dce17",
+    "name": "ORACLE_SUSDE"
+  },
+  {
+    "addr": "0x2630bbF66fc421E42DfffD370994fE1938D05083",
+    "name": "ORACLE_USDO"
+  },
+  {
+    "addr": "0xd15270F54807880C0e4eD6e076463b3f00a3A79B",
+    "name": "ORACLE_USDS"
+  },
+  {
+    "addr": "0xfBBc645d82CBBA7c20C37e477ef9C0032d7d7E51",
+    "name": "ORACLE_LVLUSD"
+  },
+  {
+    "addr": "0x862Bf0f4D43BB892AeCcd6E6c43F34549AD48171",
+    "name": "ORACLE_USR"
+  },
+  {
     "addr": "0x49FA678BB8B2F5F8089493a6f93e1bb8500FF853",
     "name": "ALLOCATION_VOTING"
   },
@@ -226,22 +266,6 @@
   {
     "addr": "0xa08Bf802dCecd3c44E6420a52d5158867366be9b",
     "name": "MINOR_ROLES_MANAGER"
-  },
-  {
-    "addr": "0x51Fc27C676C25C388735a51b760d64fE0acFf758",
-    "name": "ORACLE_USDE"
-  },
-  {
-    "addr": "0xefE74995689f850123f67C73d61C64B03a7Dce17",
-    "name": "ORACLE_SUSDE"
-  },
-  {
-    "addr": "0x2630bbF66fc421E42DfffD370994fE1938D05083",
-    "name": "ORACLE_USDO"
-  },
-  {
-    "addr": "0xd15270F54807880C0e4eD6e076463b3f00a3A79B",
-    "name": "ORACLE_USDS"
   },
   {
     "addr": "0xbFd5FC8DecA3C6128bfCE0FE46c25616811c3580",
@@ -302,6 +326,18 @@
   {
     "addr": "0x79a1141f29a849Df99daB9620dC119Ad040ae271",
     "name": "FARM_PENDLEV2_USDS_20250814"
+  },
+  {
+    "addr": "0x318E617B14fc46241E22cb4B932d3F4AbaD548b5",
+    "name": "FARM_PENDLEV2_WSTUSR_20250925"
+  },
+  {
+    "addr": "0xB6f30bBc3d1797216Dbbf8f62C47C30d9F980E7F",
+    "name": "FARM_PENDLEV2_USR_20250904"
+  },
+  {
+    "addr": "0xeA286206550DA203F0eb582185d9C969306B70e3",
+    "name": "FARM_PENDLEV2_SLVLUSD_20250925"
   },
   {
     "addr": "0x56af923033cbe7F6b83AEb9cBD7621076Fb26647",
