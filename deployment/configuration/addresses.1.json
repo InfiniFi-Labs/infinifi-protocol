@@ -72,6 +72,10 @@
     "name": "ERC20_WSTUSR"
   },
   {
+    "addr": "0x90D2af7d622ca3141efA4d8f1F24d86E5974Cc8F",
+    "name": "ERC20_EUSDE"
+  },
+  {
     "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
     "name": "ROUTER_KYBER"
   },
@@ -342,5 +346,105 @@
   {
     "addr": "0x56af923033cbe7F6b83AEb9cBD7621076Fb26647",
     "name": "LPT_CURVE_ORACLE_V1"
+  },
+  {
+    "addr": "0xF81Aa28A4F68124683AfadA81e8EBBf6e2867067",
+    "name": "CHAINLINK_FORMATTED_ORACLE_IUSD"
+  },
+  {
+    "addr": "0xA4AD55daE871218d6782ab8DaafEB243183Ccdc7",
+    "name": "CHAINLINK_FORMATTED_ORACLE_SIUSD"
+  },
+  {
+    "addr": "0x9B5ae92EBa3C383Be073e3ff94613B2C33851282",
+    "name": "CHAINLINK_FORMATTED_ORACLE_LIUSD1W"
+  },
+  {
+    "addr": "0x43ddb6634416bc232566d82Ce7F21bD127cd6bC2",
+    "name": "CHAINLINK_FORMATTED_ORACLE_SIUSD_V2"
+  },
+  {
+    "addr": "0x3881238c22E161Fa8e00590C76d549640bA7A0bA",
+    "name": "FARM_ETHENA"
+  },
+  {
+    "addr": "0x6F8A9Eb6516eAe5B8b3f8Cc95AE4c79F4c33Bc66",
+    "name": "FARM_PENDLEV2V2_SUSDE_20250925"
+  },
+  {
+    "addr": "0xb6931f0a698F4f40cBe0D79045dC2Ec223F2616D",
+    "name": "FARM_PENDLEV2V2_USDE_20250925"
+  },
+  {
+    "addr": "0x1b286D4c12C9F7Cc8a49836bd88d33AE804dE53d",
+    "name": "FARM_PENDLEV2V2_SUSDE_20250731"
+  },
+  {
+    "addr": "0x44f9499122a7434252Aa7Df727D9552c2ba9c03B",
+    "name": "FARM_PENDLEV2V2_USDE_20250731"
+  },
+  {
+    "addr": "0x5fEaad299BF772505e79250Ec58E28fdfdc52777",
+    "name": "MANUAL_REBALANCER_V2"
+  },
+  {
+    "addr": "0x3d627013d54388B3Fc5A9De153C4544c0Bc4AF13",
+    "name": "ORACLE_EUSDE"
+  },
+  {
+    "addr": "0x443e7F00B88ce7c1D9c0985d429e6688D3298b48",
+    "name": "FARM_PENDLEV2V2_EUSDE_20250814"
+  },
+  {
+    "addr": "0x6Cb48B801f449bA52C1a3477484F4405235aF976",
+    "name": "FARM_EUSDE_MIGRATION"
+  },
+  {
+    "addr": "0x607b5aB25b2ed5575D296a1caFc3A17161D4fa56",
+    "name": "MATURED_FARM_CLEANER"
+  },
+  {
+    "addr": "0xd16Bf32f67420dC60732c3cfC43103243fc3F3bF",
+    "name": "ORACLE_GHO"
+  },
+  {
+    "addr": "0x0B832573f9AEF9f045fa559366223ABB086c1cB5",
+    "name": "ORACLE_SGHO"
+  },
+  {
+    "addr": "0xA532845947a980Cb59cC7B3beD86cB5693BD4bC1",
+    "name": "ORACLE_FXUSD"
+  },
+  {
+    "addr": "0xc9c06c49Ed83d12BCA88BEd999d4920f049Beabc",
+    "name": "FARM_FXSAVE"
+  },
+  {
+    "addr": "0x7E9AA426abC2D9006E8C9881754BAA00a392158d",
+    "name": "FARM_SGHO"
+  },
+  {
+    "addr": "0xAcFd1d4FdA2Ca6B31fbe34518C9733F326881956",
+    "name": "ORACLE_LVLUSD_V2"
+  },
+  {
+    "addr": "0xF3C61F78684D15F413aF85fE6cc6773DE87a533c",
+    "name": "FARM_PENDLEV2V2_TUSDE_2025SEP25"
+  },
+  {
+    "addr": "0xd5F1FC2429F371aE730e6728B1B702a1cA4b88Fb",
+    "name": "FARM_PENDLEV2V2_PUSDE_2025OCT16"
+  },
+  {
+    "addr": "0x7a566E17B131E828F76B30609688C8C79242D268",
+    "name": "FARM_PENDLEV2V2_USDE_2025NOV27"
+  },
+  {
+    "addr": "0xC23508761c84B5ad65F1137591Dc887f142cFCf5",
+    "name": "FARM_PENDLEV2V2_SUSDE_2025NOV27"
+  },
+  {
+    "addr": "0x6a012b1Ee6C61B099F536cE6D68D63E974FacAB6",
+    "name": "FARM_PENDLEV2V2_SYRUPUSDC_2025OCT30"
   }
 ]
