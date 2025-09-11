@@ -33,7 +33,7 @@ contract ERC4626Farm is Farm {
         return ERC4626(vault).maxWithdraw(address(this));
     }
 
-    function _deposit(uint256 availableAssets) internal override {
+    function _deposit(uint256 availableAssets) internal virtual override {
         IERC20(assetToken).forceApprove(vault, availableAssets);
         ERC4626(vault).deposit(availableAssets, address(this));
     }

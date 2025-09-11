@@ -72,6 +72,10 @@
     "name": "ERC20_WSTUSR"
   },
   {
+    "addr": "0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b",
+    "name": "ERC20_SYRUPUSDC"
+  },
+  {
     "addr": "0x90D2af7d622ca3141efA4d8f1F24d86E5974Cc8F",
     "name": "ERC20_EUSDE"
   },
@@ -328,6 +332,10 @@
     "name": "FARM_PENDLEV2_SYRUPUSDC_20250821"
   },
   {
+    "addr": "0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b",
+    "name": "ERC20_SYRUPUSDC"
+  },
+  {
     "addr": "0x79a1141f29a849Df99daB9620dC119Ad040ae271",
     "name": "FARM_PENDLEV2_USDS_20250814"
   },
@@ -429,11 +437,11 @@
   },
   {
     "addr": "0xF3C61F78684D15F413aF85fE6cc6773DE87a533c",
-    "name": "FARM_PENDLEV2V2_TUSDE_2025SEP25"
+    "name": "FARM_PENDLEV2V3_TUSDE_2025SEP25"
   },
   {
     "addr": "0xd5F1FC2429F371aE730e6728B1B702a1cA4b88Fb",
-    "name": "FARM_PENDLEV2V2_PUSDE_2025OCT16"
+    "name": "FARM_PENDLEV2V3_PUSDE_2025OCT16"
   },
   {
     "addr": "0x7a566E17B131E828F76B30609688C8C79242D268",
@@ -444,7 +452,39 @@
     "name": "FARM_PENDLEV2V2_SUSDE_2025NOV27"
   },
   {
+    "addr": "0x0B915F7bF18498B7C9b1027e90162398B5D4d831",
+    "name": "FARM_PENDLEV2_SYRUPUSDC_2025OCT30"
+  },
+  {
     "addr": "0x6a012b1Ee6C61B099F536cE6D68D63E974FacAB6",
     "name": "FARM_PENDLEV2V2_SYRUPUSDC_2025OCT30"
+  },
+  {
+    "addr": "0x76D2E84009dAE457f8667D823c7c96e9A7c35B78",
+    "name": "FARM_MORPHO_INFINIFI_USDC"
+  },
+  {
+    "addr": "0xeF985C1248c46B186959fCD26d4618c1cf6889C2",
+    "name": "ORACLE_WSTUSR"
+  },
+  {
+    "addr": "0xE2D3F6Fa4C4586cEd53e1d286E8B1f43334b54D8",
+    "name": "ORACLE_SLVLUSD"
+  },
+  {
+    "addr": "0x36Cc593972EC3daFa1b3344736D770962E245B2A",
+    "name": "ORACLE_SYRUPUSDC"
+  },
+  {
+    "addr": "0x506CDEc087940FB225fd154f0398FC7d20E84092",
+    "name": "FARM_PENDLEV2V2_WSTUSR_20250925"
+  },
+  {
+    "addr": "0x20B7a78b5beFac90D715D258D80A47a119fd0ddC",
+    "name": "FARM_PENDLEV2V2_SLVLUSD_20250925"
+  },
+  {
+    "addr": "0xd880D7C5CaFdbE2AEc281250995abF612235e563",
+    "name": "FARM_SPARK_SUSDC_V2"
   }
 ]

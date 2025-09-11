@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import {IFarm} from "@interfaces/IFarm.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {FarmRegistry} from "@integrations/FarmRegistry.sol";
 import {CoreControlled} from "@core/CoreControlled.sol";
+import {MultiAssetFarm} from "@integrations/MultiAssetFarm.sol";
 
 /// @notice InfiniFi manual rebalancer, allows to move funds between farms.
 contract ManualRebalancer is CoreControlled {
@@ -109,6 +112,46 @@ contract ManualRebalancer is CoreControlled {
 
         // perform movement
         IFarm(_from).withdraw(_amount, _to);
+        IFarm(_to).deposit();
+
+        // emit event
+        emit Allocate({timestamp: block.timestamp, from: _from, to: _to, asset: _asset, amount: _amount});
+
+        return _amount;
+    }
+
+    function singleMovementSecondaryAsset(address _from, address _to, address _assetToken, uint256 _amount)
+        external
+        whenNotPaused
+        onlyCoreRole(CoreRoles.MANUAL_REBALANCER)
+        returns (uint256)
+    {
+        return _singleMovementSecondaryAsset(_from, _to, _assetToken, _amount);
+    }
+
+    /// @notice perform a single movement of secondary asset between two farms
+    /// @dev An allocation amount of type(uint256).max is interpreted as a full balance movement.
+    function _singleMovementSecondaryAsset(address _from, address _to, address _asset, uint256 _amount)
+        internal
+        returns (uint256)
+    {
+        require(FarmRegistry(farmRegistry).isFarm(_from), InvalidFarm(_from));
+        require(FarmRegistry(farmRegistry).isFarm(_to), InvalidFarm(_to));
+        address _fromAssetToken = IFarm(_from).assetToken();
+        address _toAssetToken = IFarm(_to).assetToken();
+
+        require(_asset == _fromAssetToken || MultiAssetFarm(_from).isAssetSupported(_asset), IncompatibleAssets());
+        require(_asset == _toAssetToken || MultiAssetFarm(_to).isAssetSupported(_asset), IncompatibleAssets());
+
+        if (_asset == _fromAssetToken) {
+            if (_amount == type(uint256).max) _amount = IFarm(_from).liquidity();
+            IFarm(_from).withdraw(_amount, _to);
+        } else {
+            if (_amount == type(uint256).max) _amount = IERC20(_asset).balanceOf(_from);
+            MultiAssetFarm(_from).withdrawSecondaryAsset(_asset, _amount, _to);
+        }
+
+        // trigger deposit in destination farm
         IFarm(_to).deposit();
 
         // emit event

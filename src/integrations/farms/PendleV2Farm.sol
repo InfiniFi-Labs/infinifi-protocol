@@ -16,7 +16,6 @@ import {IMaturityFarm, IFarm} from "@interfaces/IMaturityFarm.sol";
 
 /// @title Pendle V2 Farm
 /// @notice This contract is used to deploy assets to Pendle v2
-
 contract PendleV2Farm is Farm, IMaturityFarm {
     using SafeERC20 for IERC20;
     using FixedPointMathLib for uint256;
