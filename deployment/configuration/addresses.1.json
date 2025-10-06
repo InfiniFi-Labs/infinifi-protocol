@@ -80,6 +80,10 @@
     "name": "ERC20_EUSDE"
   },
   {
+    "addr": "0x09D4214C03D01F49544C0448DBE3A27f768F2b34",
+    "name": "ERC20_RUSD"
+  },
+  {
     "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
     "name": "ROUTER_KYBER"
   },
@@ -230,6 +234,14 @@
   {
     "addr": "0x862Bf0f4D43BB892AeCcd6E6c43F34549AD48171",
     "name": "ORACLE_USR"
+  },
+  {
+    "addr": "0xB52Af3F6D9E06590a0C3607EE60F7f299c745775",
+    "name": "ORACLE_RUSD"
+  },
+  {
+    "addr": "0x10F8ef5d2d5537FD0B4B0176AaBE8111fd864dAB",
+    "name": "ORACLE_EUSDE_V2"
   },
   {
     "addr": "0x49FA678BB8B2F5F8089493a6f93e1bb8500FF853",
@@ -486,5 +498,17 @@
   {
     "addr": "0xd880D7C5CaFdbE2AEc281250995abF612235e563",
     "name": "FARM_SPARK_SUSDC_V2"
+  },
+  {
+    "addr": "0x837a500C6126117b4440474EfF69F67625eCdaC8",
+    "name": "FARM_PENDLEV2V3_TUSDE_2025DEC18"
+  },
+  {
+    "addr": "0x4BE546155461d097A714eF2668893b0d10CA124c",
+    "name": "FARM_LEVEL"
+  },
+  {
+    "addr": "0x2510Fb368EE818935f0Ed49C44E4F616cbf7BF0d",
+    "name": "FARM_PENDLEV2_WSRUSD_2025OCT30"
   }
 ]
