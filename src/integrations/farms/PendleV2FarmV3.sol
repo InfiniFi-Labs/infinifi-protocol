@@ -3,99 +3,97 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
+import {IPPYLpOracle as IPendleOracle} from "@pendle/interfaces/IPPYLpOracle.sol";
 
-import {IOracle} from "@interfaces/IOracle.sol";
-import {ISYToken} from "@interfaces/pendle/ISYToken.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {Accounting} from "@finance/Accounting.sol";
-import {IPendleMarket} from "@interfaces/pendle/IPendleMarket.sol";
-import {IPendleOracle} from "@interfaces/pendle/IPendleOracle.sol";
-import {MultiAssetFarm} from "@integrations/MultiAssetFarm.sol";
-import {CoWSwapFarmBase} from "@integrations/farms/CoWSwapFarmBase.sol";
+import {CoWSwapBase} from "@integrations/CoWSwapBase.sol";
+import {IPendleV2FarmV3} from "@interfaces/IPendleV2FarmV3.sol";
+import {MultiAssetFarmV2} from "@integrations/MultiAssetFarmV2.sol";
 import {IMaturityFarm, IFarm} from "@interfaces/IMaturityFarm.sol";
 
+import {PendleStructGen} from "@libraries/PendleStructGen.sol";
+import {
+    IPYieldToken,
+    IPPrincipalToken,
+    IStandardizedYield,
+    IPAllActionV3,
+    IPMarket
+} from "@pendle/interfaces/IPAllActionV3.sol";
+
 /// @title Pendle V2 Farm (V3)
-/// @notice This contract is used to deploy assets to Pendle v2.
-/// The V3 inherits from MultiAssetFarm and CoWSwapFarmBase. Investment into PTs is done in 2
-/// steps: first, assetTokens have to be swapped to underlyingTokens using CoWSwap, then the
-/// underlyingTokens can be swapped to PTs using Pendle's AMM. Divestment works the same way,
-/// in the opposite direction.
-/// Because the farm is a MultiAssetFarm, it is possible to move the underlyingTokens directly
-/// between this farm and other farms, such that the swap fees to convert back to assetTokens is
-/// not paid by the protocol every time there is a maturity event.
-/// @dev Example deployment: PT-sUSDe-29MAY2025 market, USDC assetToken, sUSDe underlying token.
-/// @dev It is V3 because yield token is considered same as underlying token
-contract PendleV2FarmV3 is CoWSwapFarmBase, IMaturityFarm {
+/// @notice Integrates with Pendle v2 for yield token strategies
+/// @dev This contract manages Principal Tokens (PTs) and provides yield interpolation mechanisms
+/// @dev Inherits from MultiAssetFarm for multi-asset support and CoWSwapFarmBase for MEV protection
+/// ## Yield Mechanism:
+/// - Before maturity: PTs trade at discount, yield is interpolated linearly
+/// - At maturity: PTs redeem 1:1 for yield tokens, creating yield spike
+/// - Maturity discount factor accounts for potential swap losses
+contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPendleV2FarmV3 {
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using FixedPointMathLib for uint256;
 
-    error PTAlreadyMatured(uint256 maturity);
-    error PTNotMatured(uint256 maturity);
-    error SwapFailed(bytes reason);
+    IPYieldToken public immutable YT;
+    IPPrincipalToken public immutable PT;
+    IStandardizedYield public immutable SY;
 
-    event PTBought(
-        uint256 indexed timestamp,
-        uint256 timeToMaturity,
-        uint256 yieldTokenIn,
-        uint256 ptReceived,
-        uint256 assetsSpent,
-        uint256 assetsReceived,
-        uint256 assetsAtMaturity
-    );
-    event PTSold(
-        uint256 indexed timestamp,
-        uint256 ptTokensIn,
-        uint256 yieldTokensReceived,
-        uint256 assetsSpent,
-        uint256 assetsReceived
-    );
-
-    /// @notice Maturity of the Pendle market.
+    /// @notice Maturity timestamp of the Pendle market when PTs can be redeemed for underlying tokens
     uint256 public immutable maturity;
 
-    /// @notice Reference to the Pendle market.
-    address public immutable pendleMarket;
+    /// @notice Reference to the Pendle market contract for this specific yield token
+    IPMarket public immutable pendleMarket;
 
-    /// @notice Reference to the Pendle oracle (for PT <-> underlying exchange rates).
+    /// @notice Reference to the Pendle oracle used for PT to underlying asset exchange rates
     address public immutable pendleOracle;
+
+    /// @notice TWAP duration for Pendle oracle queries (30 minutes)
     uint32 private constant _PENDLE_ORACLE_TWAP_DURATION = 1800;
 
-    /// @notice Reference to the Pendle market's underlying token (the reference
-    /// token PTs appreciate against).
-    address public immutable underlyingToken;
+    /// @notice The underlying asset token that PTs will be 1-1 with at maturity
+    /// @dev NOTE: Always make sure that pivot token is not rebasing
+    address public immutable pivotToken;
 
-    /// @notice Reference to the Pendle market's yield token (the token into which
-    /// PTs convert at maturity)
-    address public immutable yieldToken;
+    /// @notice Address of the Pendle router used for executing swaps and PT operations
+    IPAllActionV3 public pendleRouter;
 
-    /// @notice Reference to the Principal Token of the Pendle market.
-    address public immutable ptToken;
+    /// @notice Address that receives PTs when transferred from this farm
+    address public ptReceiver;
 
-    /// @notice Reference to the SY token of the Pendle market
-    address public immutable syToken;
-
-    /// @notice address of the Pendle router used for swaps
-    address public pendleRouter;
-
-    /// @notice Number of yieldTokens wrapped as PTs
-    uint256 public totalWrappedYieldTokens;
-    /// @notice Number of PTs received from wrapping yieldTokens
+    /// @notice Total number of PTs currently held by this farm (tracked for reconciliation)
     uint256 public totalReceivedPTs;
 
-    /// @notice Total yield already interpolated
-    /// @dev this should be updated everytime we deposit and wrap assets
-    uint256 public alreadyInterpolatedYield;
+    /// @notice Minimum PT balance difference required to trigger reconciliation
+    /// @dev Used to handle airdrops, external transfers, or accounting discrepancies
+    uint256 public ptThreshold;
 
-    /// @notice Timestamp of the last wrapping
-    uint256 public lastWrappedTimestamp;
-
-    /// @notice Discounting of assets at maturity for the value of PTs
-    /// This is in place to account for potential swap losses at maturity, and has the effect
-    /// of reducing the yield distributed while PTs are held, and causing a potential small
-    /// yield spike when unwrapping PTs at maturity
+    /// @notice Discount factor applied to PT values at maturity to account for swap slippage
+    /// @dev Reduces reported yield during PT holding period and creates yield spike at unwrap
     uint256 public maturityPTDiscount;
 
+    /// @notice Timestamp of the last accrual rate update for yield interpolation
+    uint256 public lastCheckpointTimestamp;
+
+    /// @notice Rate at which yield accrues per second, denominated in assetTokens
+    uint256 public accrualRate;
+
+    /// @notice Total amount of assets currently wrapped as PTs, in assetTokens
+    uint256 public totalWrappedAssets;
+
+    /// @notice Initializes the PendleV2FarmV3 contract
+    /// @param _core Address of the InfiniFi core contract
+    /// @param _assetToken Primary asset token for this farm (e.g., USDC)
+    /// @param _pendleMarket Address of the Pendle market for the target yield token
+    /// @param _pendleOracle Address of the Pendle oracle for PT pricing
+    /// @param _accounting Address of the accounting contract for price conversions
+    /// @param _pendleRouter Address of the Pendle router for executing swaps
+    /// @param _settlementContract Address of the CoW Protocol settlement contract
+    /// @param _vaultRelayer Address of the CoW Protocol vault relayer
+    /// @dev Validates that the Pendle market is properly initialized and oracle is ready
+    /// @dev Sets up supported asset tokens from the SY's tokensIn and tokensOut arrays
     constructor(
         address _core,
         address _assetToken,
@@ -105,18 +103,33 @@ contract PendleV2FarmV3 is CoWSwapFarmBase, IMaturityFarm {
         address _pendleRouter,
         address _settlementContract,
         address _vaultRelayer
-    ) CoWSwapFarmBase(_settlementContract, _vaultRelayer) MultiAssetFarm(_core, _assetToken, _accounting) {
-        pendleMarket = _pendleMarket;
+    ) CoWSwapBase(_settlementContract, _vaultRelayer, true) MultiAssetFarmV2(_core, _assetToken, _accounting) {
         pendleOracle = _pendleOracle;
-        pendleRouter = _pendleRouter;
+        pendleMarket = IPMarket(_pendleMarket);
+        pendleRouter = IPAllActionV3(_pendleRouter);
 
+        // read expiry
+        maturity = pendleMarket.expiry();
         // read contracts and keep some immutable variables to save gas
-        (syToken, ptToken,) = IPendleMarket(_pendleMarket).readTokens();
-        (, underlyingToken,) = ISYToken(syToken).assetInfo();
-        yieldToken = underlyingToken;
+        (SY, PT, YT) = pendleMarket.readTokens();
+        (, pivotToken,) = SY.assetInfo();
 
-        maturity = IPendleMarket(_pendleMarket).expiry();
+        address[] memory tokensIn = SY.getTokensIn();
+        address[] memory tokensOut = SY.getTokensOut();
 
+        _enableAsset(_assetToken);
+        _enableAsset(pivotToken);
+
+        for (uint256 i = 0; i < tokensIn.length; i++) {
+            _enableAsset(tokensIn[i]);
+        }
+
+        for (uint256 i = 0; i < tokensOut.length; i++) {
+            _enableAsset(tokensOut[i]);
+        }
+
+        // set default threshold 10 PTs
+        ptThreshold = 10 * 10 ** (PT.decimals());
         // set default slippage tolerance to 0.3%
         maxSlippage = 0.997e18;
         // set default maturity discounting to 0.2%
@@ -130,244 +143,457 @@ contract PendleV2FarmV3 is CoWSwapFarmBase, IMaturityFarm {
         IPendleOracle(pendleOracle).getPtToAssetRate(_pendleMarket, _PENDLE_ORACLE_TWAP_DURATION);
     }
 
-    function setPendleRouter(address _pendleRouter) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
-        pendleRouter = _pendleRouter;
+    /// @notice Ensures the farm's PT balance is reconciled before executing operations
+    /// @dev Prevents operations when there's a significant discrepancy between tracked and actual PT balances
+    /// @dev Allows small differences up to ptThreshold to account for rounding errors
+    modifier onlyReconciled() {
+        _checkIsReconciled();
+        _;
     }
 
-    /// @dev Be careful when setting this value, as calling it on a farm with invested PTs is going to cause a jump
-    /// in the reported assets() value.
+    /// @notice Updates the Pendle router address used for swaps
+    /// @param _pendleRouter New address of the Pendle router
+    /// @dev Only callable by PROTOCOL_PARAMETERS role
+    function setPendleRouter(address _pendleRouter) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
+        pendleRouter = IPAllActionV3(_pendleRouter);
+        emit PendleRouterUpdated(block.timestamp, _pendleRouter);
+    }
+
+    /// @notice Sets the discount factor applied to PT values at maturity
+    /// @param _maturityPTDiscount New discount factor (1e18 = 100%, 0.998e18 = 99.8%)
+    /// @dev WARNING: Changing this on a farm with invested PTs will cause a jump in reported assets()
+    /// @dev Only callable by PROTOCOL_PARAMETERS role
     function setMaturityPTDiscount(uint256 _maturityPTDiscount) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
         maturityPTDiscount = _maturityPTDiscount;
+        _handleBalanceChange(0);
+        emit MaturityPTDiscountUpdated(block.timestamp, _maturityPTDiscount);
     }
 
-    function assetTokens() public view override returns (address[] memory) {
-        address[] memory tokens = new address[](2);
-        tokens[0] = assetToken;
-        tokens[1] = yieldToken;
-        return tokens;
+    /// @notice Sets the threshold for PT reconciliation
+    /// @param _ptThreshold New threshold
+    /// @dev Only callable by PROTOCOL_PARAMETERS role
+    function setPtThreshold(uint256 _ptThreshold) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
+        ptThreshold = _ptThreshold;
+        emit PTThresholdUpdated(block.timestamp, _ptThreshold);
     }
 
-    function isAssetSupported(address _asset) public view override returns (bool) {
-        return _asset == assetToken || _asset == yieldToken;
+    /// @notice Sets the address that will receive PTs when transferred from this farm
+    /// @param _ptReceiver Address to receive transferred PTs
+    /// @dev Cannot be set to this contract's address
+    /// @dev Only callable by PROTOCOL_PARAMETERS role
+    function setPTReceiver(address _ptReceiver) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
+        require(_ptReceiver != address(this), PTReceiverIsSelf());
+        ptReceiver = _ptReceiver;
+        emit PTReceiverChanged(block.timestamp, _ptReceiver);
     }
 
-    /// @notice Returns the total assets in the farm
-    /// before maturity, the assets are the sum of assets in the farm + assets wrapped + the interpolated yield
-    /// after maturity, the assets are the sum of the assets() + the value of the PTs based on oracle prices
-    /// @dev Note that the assets() function includes the current balance of assetTokens,
-    /// this is because deposit()s and withdraw()als in this farm are handled asynchronously,
-    /// as they have to go through swaps which calldata has to be generated offchain.
-    /// This farm therefore holds its reserve in 3 tokens, assetToken, yieldTokens, and ptTokens.
-    /// This farm's assets() reported does not take into account the slippage we might incur from
-    /// converting assetTokens to yieldTokens and yieldTokens to ptTokens.
-    function assets() public view override(MultiAssetFarm, IFarm) returns (uint256) {
-        uint256 supportedAssetBalance = MultiAssetFarm.assets();
+    function assets() public view override returns (uint256) {
+        uint256 supportedAssetBalance = MultiAssetFarmV2.assets();
+        uint256 ptAssetsValue = ptToAssetsAtMaturity(totalReceivedPTs).mulWadDown(maturityPTDiscount) - remainingYield();
 
-        if (block.timestamp < maturity) {
-            // before maturity, interpolate yield
-            return supportedAssetBalance + yieldTokensToAssets(totalWrappedYieldTokens) + interpolatingYield();
-        }
-
-        // after maturity, return the total USDC held in the farm +
-        // the PTs value if any are still held
-        uint256 balanceOfPTs = IERC20(ptToken).balanceOf(address(this));
-        uint256 ptAssetsValue = 0;
-        if (balanceOfPTs > 0) {
-            // estimate the value of the PTs at maturity,
-            // accounting for possible max slippage
-            ptAssetsValue = ptToAssets(balanceOfPTs).mulWadDown(maturityPTDiscount);
-        }
         return supportedAssetBalance + ptAssetsValue;
     }
 
-    /// @notice swap a token in [assetToken, yieldToken] to a token out [assetToken, yieldToken]
+    /// @notice Calculates the remaining yield that will be distributed until maturity
+    /// @return Amount of yield remaining to be distributed, in assetTokens
+    /// @dev Returns 0 if maturity has already passed
+    function remainingYield() public view returns (uint256) {
+        if (block.timestamp >= maturity) return 0;
+        return accrualRate.mulWadDown(maturity - block.timestamp);
+    }
+
+    /// @notice Calculates the interpolated yield that is already reported by the farm
+    /// @dev Returns 0 if maturity has already passed
+    function interpolatedYield() public view returns (uint256) {
+        if (block.timestamp >= maturity) return 0;
+        if (block.timestamp <= lastCheckpointTimestamp) return 0;
+        return accrualRate.mulWadUp(block.timestamp - lastCheckpointTimestamp);
+    }
+
+    /// ============================================================
+    /// Wrap/Unwrap supported tokens to PTs
+    /// ============================================================
+
+    /// @notice Wraps supported tokens into Pendle Principal Tokens (PTs)
+    /// @param _tokenIn Token to wrap (must be valid input for the SY)
+    /// @param _amountIn Amount of tokens to wrap
+    /// @dev Uses Pendle router to swap tokens for PTs with slippage protection
+    /// @dev Can be called multiple times with partial amounts to reduce slippage
+    /// @dev Transaction can be submitted privately to avoid MEV attacks
+    /// @dev Only callable before maturity and by FARM_SWAP_CALLER role
+    function wrapToPt(address _tokenIn, uint256 _amountIn)
+        external
+        whenNotPaused
+        nonReentrant
+        onlyReconciled
+        onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
+    {
+        _validateAmount(_tokenIn, _amountIn);
+        require(block.timestamp < maturity, PTAlreadyMatured(maturity));
+        require(isAssetSupported(_tokenIn) && SY.isValidTokenIn(_tokenIn), InvalidToken(_tokenIn));
+
+        // do swap
+        IERC20(_tokenIn).forceApprove(address(pendleRouter), _amountIn);
+        (uint256 ptReceived,,) = pendleRouter.swapExactTokenForPt(
+            address(this),
+            address(pendleMarket),
+            0,
+            PendleStructGen.createDefaultApprox(),
+            PendleStructGen.createTokenInputStruct(_tokenIn, _amountIn),
+            PendleStructGen.createEmptyLimitOrder()
+        );
+
+        _checkSlippageIn(_tokenIn, _amountIn, ptReceived);
+
+        uint256 assetAmountIn = convert(_tokenIn, assetToken, _amountIn);
+        _handleBalanceChange(int256(assetAmountIn));
+
+        emit PTWrapped(block.timestamp, _tokenIn, _amountIn, ptReceived, assetAmountIn);
+    }
+
+    /// @notice Unwraps Pendle Principal Tokens (PTs) into supported tokens
+    /// @param _tokenOut Token to receive (must be valid output for the SY)
+    /// @param _ptTokensIn Amount of PTs to unwrap
+    /// @dev Uses Pendle router to swap PTs for tokens with slippage protection
+    /// @dev Before maturity: swaps PTs for tokens on the market
+    /// @dev After maturity: redeems PTs directly for supported out tokens
+    /// @dev MANUAL_REBALANCER role can unwrap before maturity for emergency exits
+    /// @dev Only callable by FARM_SWAP_CALLER role
+    function unwrapFromPt(address _tokenOut, uint256 _ptTokensIn)
+        external
+        whenNotPaused
+        nonReentrant
+        onlyReconciled
+        onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
+    {
+        _validateAmount(address(PT), _ptTokensIn);
+        require(isAssetSupported(_tokenOut) && SY.isValidTokenOut(_tokenOut), InvalidToken(_tokenOut));
+
+        // MANUAL_REBALANCER role can bypass the maturity check and manually
+        // exit positions before maturity.
+        if (!core().hasRole(CoreRoles.MANUAL_REBALANCER, msg.sender)) {
+            require(block.timestamp >= maturity, PTNotMatured(maturity));
+        }
+
+        uint256 tokensOut = 0;
+        // do swap
+        IERC20(PT).forceApprove(address(pendleRouter), _ptTokensIn);
+        if (block.timestamp < maturity) {
+            (tokensOut,,) = pendleRouter.swapExactPtForToken(
+                address(this),
+                address(pendleMarket),
+                _ptTokensIn,
+                PendleStructGen.createTokenOutputStruct(_tokenOut, 0),
+                PendleStructGen.createEmptyLimitOrder()
+            );
+        } else {
+            (tokensOut,) = pendleRouter.redeemPyToToken(
+                address(this), address(YT), _ptTokensIn, PendleStructGen.createTokenOutputStruct(_tokenOut, 0)
+            );
+        }
+
+        _checkSlippageOut(_tokenOut, _ptTokensIn, tokensOut);
+
+        uint256 assetsOut = convert(_tokenOut, assetToken, tokensOut);
+        _handleBalanceChange(-int256(assetsOut));
+
+        emit PTUnwrapped(block.timestamp, _tokenOut, _ptTokensIn, tokensOut, assetsOut);
+    }
+
+    /// @notice Wraps tokens into PTs using custom Pendle router calldata
+    /// @param _tokenIn Token to wrap (must be supported by the farm)
+    /// @param _amountIn Amount of tokens to wrap
+    /// @param _calldata Custom calldata for Pendle router execution
+    /// @dev Allows for custom swap parameters and advanced Pendle operations
+    /// @dev Can be called multiple times with partial amounts to reduce slippage
+    /// @dev Transaction can be submitted privately to avoid MEV attacks
+    /// @dev Only callable before maturity and by FARM_SWAP_CALLER role
+    function wrapToPt(address _tokenIn, uint256 _amountIn, bytes memory _calldata)
+        external
+        whenNotPaused
+        nonReentrant
+        onlyReconciled
+        onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
+    {
+        _validateAmount(_tokenIn, _amountIn);
+        require(block.timestamp < maturity, PTAlreadyMatured(maturity));
+        require(isAssetSupported(_tokenIn), InvalidToken(_tokenIn));
+
+        uint256 ptBalanceBefore = PT.balanceOf(address(this));
+
+        // do swap
+        IERC20(_tokenIn).forceApprove(address(pendleRouter), _amountIn);
+        (bool success, bytes memory reason) = address(pendleRouter).call(_calldata);
+        require(success, SwapFailed(reason));
+
+        // check slippage
+        uint256 ptBalanceAfter = PT.balanceOf(address(this));
+        uint256 ptReceived = ptBalanceAfter - ptBalanceBefore;
+
+        _checkSlippageIn(_tokenIn, _amountIn, ptReceived);
+
+        // tokens are returned from SY getTokensOut
+        uint256 assetAmountIn = convert(_tokenIn, assetToken, _amountIn);
+        _handleBalanceChange(int256(assetAmountIn));
+
+        emit PTZappedIn(block.timestamp, _tokenIn, _amountIn, ptReceived, assetAmountIn);
+    }
+
+    /// @notice Unwraps PTs into tokens using custom Pendle router calldata
+    /// @param _tokenOut Token to receive (must be supported by the farm)
+    /// @param _ptTokensIn Amount of PTs to unwrap
+    /// @param _calldata Custom calldata for Pendle router execution
+    /// @dev Allows for custom swap parameters and advanced Pendle operations
+    /// @dev MANUAL_REBALANCER role can unwrap before maturity for emergency exits
+    /// @dev Only callable by FARM_SWAP_CALLER role
+    function unwrapFromPt(address _tokenOut, uint256 _ptTokensIn, bytes memory _calldata)
+        external
+        whenNotPaused
+        nonReentrant
+        onlyReconciled
+        onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
+    {
+        _validateAmount(address(PT), _ptTokensIn);
+        require(isAssetSupported(_tokenOut), InvalidToken(_tokenOut));
+        // MANUAL_REBALANCER role can bypass the maturity check and manually
+        // exit positions before maturity.
+        if (!core().hasRole(CoreRoles.MANUAL_REBALANCER, msg.sender)) {
+            require(block.timestamp >= maturity, PTNotMatured(maturity));
+        }
+
+        uint256 tokensBefore = IERC20(_tokenOut).balanceOf(address(this));
+
+        // do swap
+        IERC20(PT).forceApprove(address(pendleRouter), _ptTokensIn);
+        (bool success, bytes memory reason) = address(pendleRouter).call(_calldata);
+        require(success, SwapFailed(reason));
+
+        // check slippage
+        uint256 tokensAfter = IERC20(_tokenOut).balanceOf(address(this));
+        uint256 tokensOut = tokensAfter - tokensBefore;
+
+        _checkSlippageOut(_tokenOut, _ptTokensIn, tokensOut);
+
+        uint256 assetsOut = convert(_tokenOut, assetToken, tokensOut);
+        _handleBalanceChange(-int256(assetsOut));
+
+        emit PTZappedOut(block.timestamp, _tokenOut, tokensOut, _ptTokensIn, assetsOut);
+    }
+
+    /// @notice Transfers PTs to the configured receiver and reconciles accounting
+    /// @param _amount Amount of PTs to transfer
+    /// @dev HIGHLY SENSITIVE: Transfers PTs and updates accounting on both farms
+    /// @dev Requires ptReceiver to be set and implements reconciliation
+    /// @dev Only callable by FARM_SWAP_CALLER role
+    function transferPt(uint256 _amount, bool _reconcile)
+        external
+        whenNotPaused
+        onlyReconciled
+        onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
+    {
+        _validateAmount(address(PT), _amount);
+        require(ptReceiver != address(0), PTReceiverNotSet());
+
+        IERC20(PT).safeTransfer(ptReceiver, _amount);
+
+        int256 assetsValue = _estimateAssetsValue(-int256(_amount));
+        _handleBalanceChange(assetsValue);
+
+        if (_reconcile) {
+            PendleV2FarmV3(ptReceiver).reconcilePt();
+        }
+
+        emit PTTransferred(block.timestamp, ptReceiver, _amount, uint256(-assetsValue));
+    }
+
+    /// @notice Reconciles tracked balances with actual token balances
+    /// @dev This function should be called to handle PT airdrops, external transfers, or any
+    /// scenario where the actual PT balance differs from the tracked balance.
+    function reconcilePt() external whenNotPaused nonReentrant {
+        uint256 balanceOfPTs = PT.balanceOf(address(this));
+        int256 ptDifference = int256(balanceOfPTs) - int256(totalReceivedPTs);
+
+        uint256 ptDifferenceAbs = uint256(ptDifference > 0 ? ptDifference : -ptDifference);
+        require(ptDifferenceAbs >= ptThreshold, NoPTsToReconcile(ptDifference));
+
+        int256 assetsValue = _estimateAssetsValue(ptDifference);
+        _handleBalanceChange(assetsValue);
+
+        emit PTReconciled(block.timestamp, assetsValue, ptDifference);
+    }
+
+    /// @notice Signs a CoW Protocol swap order for supported asset tokens
+    /// @param _tokenIn Token to swap from
+    /// @param _tokenOut Token to swap to
+    /// @param _amountIn Amount of input token to swap
+    /// @param _minAmountOut Minimum amount of output token expected
+    /// @return Calldata for the CoW Protocol swap order
+    /// @dev Both tokens must be supported and have oracles
+    /// @dev Only callable by FARM_SWAP_CALLER role
     function signSwapOrder(address _tokenIn, address _tokenOut, uint256 _amountIn, uint256 _minAmountOut)
         external
         whenNotPaused
         onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
         returns (bytes memory)
     {
-        require(_tokenIn == assetToken || _tokenIn == yieldToken, InvalidToken(_tokenIn));
-        require(_tokenOut == assetToken || _tokenOut == yieldToken, InvalidToken(_tokenOut));
-        require(_tokenIn != _tokenOut, InvalidToken(_tokenOut));
+        _validateAmount(_tokenIn, _amountIn);
+        CoWSwapBase.CoWSwapData memory _data =
+            CoWSwapBase.CoWSwapData(_tokenIn, _tokenOut, _amountIn, _minAmountOut, maxSlippage);
 
-        return _checkSwapApproveAndSignOrder(_tokenIn, _tokenOut, _amountIn, _minAmountOut, maxSlippage);
+        return _checkSwapApproveAndSignOrder(_data);
     }
 
-    /// @notice Wraps yieldTokens to PTs.
-    /// @dev The transaction may be submitted privately to avoid sandwiching, and the function
-    /// can be called multiple times with partial amounts to help reduce slippage.
-    /// @dev The caller is trusted to not be sandwiching the swap to steal yield.
-    function wrapYieldTokenToPt(uint256 _yieldTokenIn, bytes memory _calldata)
-        external
-        whenNotPaused
-        onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
-    {
-        require(block.timestamp < maturity, PTAlreadyMatured(maturity));
-        // update the already interpolated yield on each wrap
-        alreadyInterpolatedYield = interpolatingYield();
-        uint256 ptBalanceBefore = IERC20(ptToken).balanceOf(address(this));
+    /// ============================================================
+    /// PT Conversions to asset tokens
+    /// ============================================================
 
-        // do swap
-        IERC20(yieldToken).forceApprove(pendleRouter, _yieldTokenIn);
-        (bool success, bytes memory reason) = pendleRouter.call(_calldata);
-        require(success, SwapFailed(reason));
-
-        // check slippage
-        uint256 ptBalanceAfter = IERC20(ptToken).balanceOf(address(this));
-        uint256 ptReceived = ptBalanceAfter - ptBalanceBefore;
-        uint256 minOut = _yieldTokenIn.mulWadDown(maxSlippage);
-        uint256 actualOut = ptToYieldToken(ptReceived);
-        require(actualOut >= minOut, SlippageTooHigh(minOut, actualOut));
-
-        // update wrapped assets
-        // @dev we are not doing totalWrappedYieldTokens += actualOut because we do not want to
-        // report losses from buying PTs, as the PTs will earn yield towards maturity that should
-        // make up for it.
-        totalWrappedYieldTokens += _yieldTokenIn;
-        totalReceivedPTs += ptReceived;
-        lastWrappedTimestamp = block.timestamp;
-
-        // emit event
-        emit PTBought(
-            block.timestamp,
-            maturity - block.timestamp,
-            _yieldTokenIn,
-            ptReceived,
-            yieldTokensToAssets(_yieldTokenIn),
-            ptToAssets(ptReceived),
-            ptReceived.mulWadDown(assetToPtUnderlyingRate())
-        );
-    }
-
-    /// @notice Unwraps PTs to yieldTokens.
-    /// @dev The transaction may be submitted privately to avoid sandwiching, and the function
-    /// can be called multiple times with partial amounts to help reduce slippage.
-    function unwrapPtToYieldToken(uint256 _ptTokensIn, bytes memory _calldata)
-        external
-        whenNotPaused
-        onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
-    {
-        // MANUAL_REBALANCER role can bypass the maturity check and manually
-        // exit positions before maturity.
-        if (!core().hasRole(CoreRoles.MANUAL_REBALANCER, msg.sender)) {
-            require(block.timestamp >= maturity, PTNotMatured(maturity));
-        } else if (block.timestamp < maturity) {
-            // early exit case: an address with MANUAL_REBALANCER can swap all the PTs
-            // to yieldTokens before maturity, should it be needed.
-            // a step jump will occur in reported assets(), because the contract conservatively
-            // discounts for potential slippage during interpolation, but actual unwrap often
-            // recovers more value.
-            require(_ptTokensIn == totalReceivedPTs, SwapFailed("Must unwrap all"));
-            totalWrappedYieldTokens = 0;
-            totalReceivedPTs = 0;
-            lastWrappedTimestamp = 0;
-            alreadyInterpolatedYield = 0;
-        }
-        uint256 yieldTokensBefore = IERC20(yieldToken).balanceOf(address(this));
-
-        // do swap
-        IERC20(ptToken).forceApprove(pendleRouter, _ptTokensIn);
-        (bool success, bytes memory reason) = pendleRouter.call(_calldata);
-        require(success, SwapFailed(reason));
-
-        // check slippage
-        uint256 yieldTokensAfter = IERC20(yieldToken).balanceOf(address(this));
-        uint256 yieldTokensReceived = yieldTokensAfter - yieldTokensBefore;
-        uint256 minOut = ptToYieldToken(_ptTokensIn).mulWadDown(maxSlippage);
-        require(yieldTokensReceived >= minOut, SlippageTooHigh(minOut, yieldTokensReceived));
-
-        // emit event
-        emit PTSold(
-            block.timestamp,
-            _ptTokensIn,
-            yieldTokensReceived,
-            _ptTokensIn.mulWadDown(assetToPtUnderlyingRate()),
-            yieldTokensToAssets(yieldTokensReceived)
-        );
-    }
-
-    function ptToYieldToken(uint256 _ptAmount) public view returns (uint256) {
-        if (_ptAmount == 0) return 0;
-        uint256 yieldTokenPrice = Accounting(accounting).price(yieldToken);
-        uint256 underlyingPrice = Accounting(accounting).price(underlyingToken);
-        return ptToUnderlying(_ptAmount).mulDivDown(underlyingPrice, yieldTokenPrice);
-    }
-
-    function yieldTokensToAssets(uint256 _yieldTokensAmount) public view returns (uint256) {
-        uint256 assetPrice = Accounting(accounting).price(assetToken);
-        uint256 yieldTokenPrice = Accounting(accounting).price(yieldToken);
-        return _yieldTokensAmount.mulDivDown(yieldTokenPrice, assetPrice);
-    }
-
-    /// @dev e.g. for ptToken = PT-USDe-29MAY2025 and assetToken = USDC,
-    /// this oracle returns the exchange rate of USDe (the underlying token) to USDC.
-    /// Since USDe has 18 decimals and USDC has 6, and the exchange rate is ~1:1,
-    /// the oracle should return a value ~= 1e6 because the USDC oracle returns 1e30
-    /// and the USDe oracle returns 1e18.
-    function assetToPtUnderlyingRate() public view returns (uint256) {
-        uint256 assetPrice = Accounting(accounting).price(assetToken);
-        uint256 underlyingPrice = Accounting(accounting).price(underlyingToken);
-        return underlyingPrice.divWadDown(assetPrice);
-    }
-
-    /// @notice Converts a number of underlyingTokens to assetTokens based on oracle rates.
-    function underlyingToAssets(uint256 _underlyingAmount) public view returns (uint256) {
-        if (_underlyingAmount == 0) return 0;
-        return _underlyingAmount.mulWadDown(assetToPtUnderlyingRate());
-    }
-
-    /// @notice Converts a number of PTs to assetTokens based on oracle rates.
+    /// @notice Converts PTs to assetTokens using Pendle oracle rates
+    /// @param _ptAmount Amount of PTs to convert
+    /// @return Equivalent amount in assetTokens
+    /// @dev Uses Pendle oracle TWAP for spot pricing
+    /// @dev Returns 0 if oracle rate is unavailable
     function ptToAssets(uint256 _ptAmount) public view returns (uint256) {
         if (_ptAmount == 0) return 0;
-        return ptToUnderlying(_ptAmount).mulWadDown(assetToPtUnderlyingRate());
+
+        uint256 ptToSyAssetTokenRate =
+            IPendleOracle(pendleOracle).getPtToAssetRate(address(pendleMarket), _PENDLE_ORACLE_TWAP_DURATION);
+
+        if (ptToSyAssetTokenRate == 0) return 0;
+        uint256 syAssetTokenAmount = _ptAmount.mulWadDown(ptToSyAssetTokenRate);
+        return convert(pivotToken, assetToken, syAssetTokenAmount);
     }
 
-    /// @notice Converts a number of PTs to underlyingTokens based on oracle rates.
-    function ptToUnderlying(uint256 _ptAmount) public view returns (uint256) {
-        if (_ptAmount == 0) return 0;
-        // read oracles
-        uint256 ptToUnderlyingRate =
-            IPendleOracle(pendleOracle).getPtToAssetRate(pendleMarket, _PENDLE_ORACLE_TWAP_DURATION);
-        // convert
-        return _ptAmount.mulWadDown(ptToUnderlyingRate);
+    /// @notice Calculates the asset value of a given amount of PTs, at maturity
+    /// @param _ptAmount Amount of PTs to value
+    /// @return PT value in assetTokens
+    /// @dev At maturity, PTs have a 1:1 conversion with pivot token, and PT token has the
+    /// same amount of decimals as the pivot token, therefore we can do a conversion from
+    /// pivot token to asset token to price the PTs at maturity.
+    /// @dev this returns a raw value where maturityPTDiscount is not applied
+    function ptToAssetsAtMaturity(uint256 _ptAmount) public view returns (uint256) {
+        return convert(pivotToken, assetToken, _ptAmount);
     }
 
-    /// @notice Computes the yield to interpolate from the last deposit to maturity.
-    /// @dev this function is and should only be called before maturity
-    function interpolatingYield() public view returns (uint256) {
-        // if no wrapping has been made yet, no yield to interpolate
-        if (lastWrappedTimestamp == 0) return 0;
-        uint256 balanceOfPTs = IERC20(ptToken).balanceOf(address(this));
-        // if not PTs held, no need to interpolate
-        if (balanceOfPTs == 0) return 0;
+    /// ============================================================
+    /// Internal functions
+    /// ============================================================
 
-        // we want to interpolate the yield from the current time to maturity
-        // to do that, we first need to compute how much USDC we should be able to get once maturity is reached
-        // at maturity, 1 PT is worth 1 underlying PT asset (e.g. USDE)
-        // so we can compute the amount of assets (eg USDC) we should get at maturity by using the assetToPtUnderlyingRate
-        // in this example, assetToPtUnderlyingRate gives the price of USDE in USDC. probably close to 1:1
-        uint256 maturityAssetAmount = balanceOfPTs.mulWadDown(assetToPtUnderlyingRate());
-        // account for slippage, because unwrapping PTs => assets will cause some slippage using pendle's AMM
-        maturityAssetAmount = maturityAssetAmount.mulWadDown(maturityPTDiscount);
-
-        // compute the yield to interpolate, which is the target amount (maturityAssetAmount) minus the amount of assets
-        // wrapped minus the already interpolated yield (can be != 0 if we made multiple wraps)
-        uint256 totalWrappedAssets = yieldTokensToAssets(totalWrappedYieldTokens);
-        int256 totalYieldRemainingToInterpolate =
-            int256(maturityAssetAmount) - int256(totalWrappedAssets) - int256(alreadyInterpolatedYield);
-
-        // in case the rate moved against us, we return the already interpolated yield
-        if (totalYieldRemainingToInterpolate < 0) {
-            return alreadyInterpolatedYield;
+    /// @notice Updates farm accounting when PT balance changes
+    /// @param _assetsIn Change in assets (positive for deposits, negative for withdrawals)
+    /// @dev Updates accrual rate and interpolation parameters for yield distribution
+    /// @dev Clears accrual data after maturity as no more yield can be earned
+    function _handleBalanceChange(int256 _assetsIn) internal {
+        uint256 ptBalance = PT.balanceOf(address(this));
+        totalReceivedPTs = ptBalance;
+        if (block.timestamp >= maturity) {
+            delete accrualRate;
+            delete totalWrappedAssets;
+            return;
         }
 
-        // cannot underflow because lastWrappedTimestamp cannot be after maturity as we cannot wrap after maturity
-        // and lastWrappedTimestamp is always > 0 otherwise the first line of this function would have returned 0
-        uint256 yieldPerSecond =
-            (uint256(totalYieldRemainingToInterpolate) * FixedPointMathLib.WAD) / (maturity - lastWrappedTimestamp);
-        uint256 secondsSinceLastWrap = block.timestamp - lastWrappedTimestamp;
-        uint256 interpolatedYield = yieldPerSecond * secondsSinceLastWrap;
-        return alreadyInterpolatedYield + interpolatedYield / FixedPointMathLib.WAD;
+        uint256 currentAssets = totalWrappedAssets + interpolatedYield();
+
+        if (_assetsIn > 0) {
+            currentAssets += uint256(_assetsIn);
+        } else {
+            currentAssets = _safeSubtract(currentAssets, uint256(-_assetsIn));
+        }
+
+        uint256 assetsAtMaturity = ptToAssetsAtMaturity(ptBalance).mulWadDown(maturityPTDiscount);
+        uint256 yieldDifference = _safeSubtract(assetsAtMaturity, currentAssets);
+        uint256 _accrualRate = yieldDifference.divWadUp(maturity - block.timestamp);
+
+        accrualRate = _accrualRate;
+        lastCheckpointTimestamp = block.timestamp;
+        totalWrappedAssets = assetsAtMaturity - yieldDifference;
+    }
+
+    /// @notice estimates asset value based on the current exchange rate between:
+    /// the PTs held and the assets reported by the farm
+    function _estimateAssetsValue(int256 _ptAmount) internal view returns (int256) {
+        if (block.timestamp >= maturity) return 0;
+
+        // farm must have actived wrap to be able to give estimates
+        require(totalWrappedAssets > 0, FarmNotUsed(totalReceivedPTs, totalWrappedAssets));
+        require(totalReceivedPTs > 0, FarmNotUsed(totalReceivedPTs, totalWrappedAssets));
+
+        uint256 currentAssets = totalWrappedAssets + interpolatedYield();
+        uint256 assetsAtMaturity = ptToAssetsAtMaturity(totalReceivedPTs);
+        uint256 currentRatio = currentAssets.divWadUp(assetsAtMaturity);
+
+        if (_ptAmount > 0) {
+            uint256 _assetAmount = uint256(_ptAmount).mulWadDown(currentRatio);
+            return int256(convert(pivotToken, assetToken, _assetAmount));
+        }
+
+        uint256 assetAmount = uint256(-_ptAmount).mulWadDown(currentRatio);
+        return -int256(convert(pivotToken, assetToken, assetAmount));
+    }
+
+    /// @inheritdoc CoWSwapBase
+    function _validateSwap(CoWSwapData memory _data) internal virtual override {
+        require(isAssetSupported(_data.tokenIn), InvalidToken(_data.tokenIn));
+        require(isAssetSupported(_data.tokenOut), InvalidToken(_data.tokenOut));
+        require(_data.tokenIn != _data.tokenOut, InvalidToken(_data.tokenOut));
+
+        uint256 minOutSlippage = convert(_data.tokenIn, _data.tokenOut, _data.amountIn).mulWadDown(_data.maxSlippage);
+        require(_data.minAmountOut > minOutSlippage, SlippageTooHigh(minOutSlippage, _data.minAmountOut));
+    }
+
+    /// @notice Validates slippage for unwrap operations
+    /// @param _tokenOut Token received from unwrapping
+    /// @param _amountIn Amount of PTs unwrapped
+    /// @param _amountOut Amount of tokens received
+    /// @dev Ensures actual output meets minimum slippage requirements
+    function _checkSlippageOut(address _tokenOut, uint256 _amountIn, uint256 _amountOut) private view {
+        uint256 minOut = ptToAssets(_amountIn).mulWadDown(maxSlippage);
+        uint256 assetsOut = convert(_tokenOut, assetToken, _amountOut);
+        require(assetsOut >= minOut, SlippageTooHigh(minOut, assetsOut));
+    }
+
+    /// @notice Validates slippage for wrap operations
+    /// @param _tokenIn Token used for wrapping
+    /// @param _amountIn Amount of tokens wrapped
+    /// @param _amountOut Amount of PTs received
+    /// @dev Ensures actual output meets minimum slippage requirements
+    function _checkSlippageIn(address _tokenIn, uint256 _amountIn, uint256 _amountOut) private view {
+        uint256 assetsOut = convert(_tokenIn, assetToken, _amountIn);
+        uint256 minOut = assetsOut.mulWadDown(maxSlippage);
+        uint256 actualOut = ptToAssets(_amountOut);
+        require(actualOut >= minOut, SlippageTooHigh(minOut, actualOut));
+    }
+
+    /// @notice Validates that the specified amount is valid and available
+    /// @param _asset Address of the token to check
+    /// @param _amount Amount to validate
+    /// @dev Ensures amount is positive and doesn't exceed the contract's balance
+    function _validateAmount(address _asset, uint256 _amount) internal view {
+        require(_amount > 0, InvalidAmountIn(_amount));
+        uint256 balance = IERC20(_asset).balanceOf(address(this));
+        require(_amount <= balance, InsufficientBalance(_asset, _amount));
+    }
+
+    /// @notice Ensures the farm's PT balance is reconciled before executing operations
+    /// @dev Prevents operations when there's a significant discrepancy between tracked and actual PT balances
+    /// @dev In case there were no deposits in the farm or no unwraps allows operations
+    /// @dev Allows small differences up to ptThreshold to account for rounding errors
+    function _checkIsReconciled() internal view {
+        if (totalReceivedPTs == 0) return;
+
+        uint256 balanceOfPTs = PT.balanceOf(address(this));
+        if (balanceOfPTs != totalReceivedPTs) {
+            int256 ptDifference = int256(balanceOfPTs) - int256(totalReceivedPTs);
+            uint256 ptDifferenceAbs = uint256(ptDifference > 0 ? ptDifference : -ptDifference);
+            require(ptDifferenceAbs <= ptThreshold, FarmNotReconciled(totalReceivedPTs, balanceOfPTs));
+        }
+    }
+
+    /// @notice Safely subtracts two numbers, returning 0 if underflow would occur
+    /// @param _a First number
+    /// @param _b Second number to subtract
+    /// @return Result of subtraction or 0 if underflow
+    /// @dev Used for approximations where underflow is acceptable
+    function _safeSubtract(uint256 _a, uint256 _b) internal pure returns (uint256) {
+        return _a > _b ? _a - _b : 0;
     }
 }
