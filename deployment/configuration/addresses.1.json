@@ -80,8 +80,36 @@
     "name": "ERC20_EUSDE"
   },
   {
+    "addr": "0xA62B204099277762d1669d283732dCc1B3AA96CE",
+    "name": "ERC20_PUSDE"
+  },
+  {
+    "addr": "0xA01227A26A7710bc75071286539E47AdB6DEa417",
+    "name": "ERC20_TUSDE"
+  },
+  {
     "addr": "0x09D4214C03D01F49544C0448DBE3A27f768F2b34",
     "name": "ERC20_RUSD"
+  },
+  {
+    "addr": "0xd3fD63209FA2D55B07A0f6db36C2f43900be3094",
+    "name": "ERC20_WSRUSD"
+  },
+  {
+    "addr": "0xcCcc62962d17b8914c62D74FfB843d73B2a3cccC",
+    "name": "ERC20_CUSD"
+  },
+  {
+    "addr": "0x88887bE419578051FF9F4eb6C858A951921D8888",
+    "name": "ERC20_STCUSD"
+  },
+  {
+    "addr": "0x3d7d6fdf07EE548B939A80edbc9B2256d0cdc003",
+    "name": "ERC20_SRUSDE"
+  },
+  {
+    "addr": "0xDCD0f5ab30856F28385F641580Bbd85f88349124",
+    "name": "ERC20_ALUSD"
   },
   {
     "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
@@ -204,6 +232,10 @@
     "name": "YIELD_SHARING_V2"
   },
   {
+    "addr": "0x3C113De75417352875f7BE07B9fC056655eB4021",
+    "name": "JCURVE_SMOOTHER"
+  },
+  {
     "addr": "0x8ABc952f91dB6695E765744ae340BC5eA4B344c1",
     "name": "ORACLE_IUSD"
   },
@@ -244,6 +276,10 @@
     "name": "ORACLE_EUSDE_V2"
   },
   {
+    "addr": "0x41646DD6D8a4675A1765916C208fE4092FF66772",
+    "name": "ORACLE_WSRUSD"
+  },
+  {
     "addr": "0x49FA678BB8B2F5F8089493a6f93e1bb8500FF853",
     "name": "ALLOCATION_VOTING"
   },
@@ -254,6 +290,10 @@
   {
     "addr": "0xCb1747E89a43DEdcF4A2b831a0D94859EFeC7601",
     "name": "REDEEM_CONTROLLER"
+  },
+  {
+    "addr": "0xeb32a309405c72253d5dB9ef28310A8Ff56b6fd7",
+    "name": "FARM_SWAP_V2"
   },
   {
     "addr": "0xa5E274E6c2AbBd30E3A94e1A2dF7e6F5944797a8",
@@ -286,6 +326,10 @@
   {
     "addr": "0xa08Bf802dCecd3c44E6420a52d5158867366be9b",
     "name": "MINOR_ROLES_MANAGER"
+  },
+  {
+    "addr": "0xD0ec80032C0da717BD78B9569321D9069365241E",
+    "name": "FLUID_REWARDS_CLAIMER"
   },
   {
     "addr": "0xbFd5FC8DecA3C6128bfCE0FE46c25616811c3580",
@@ -510,5 +554,53 @@
   {
     "addr": "0x2510Fb368EE818935f0Ed49C44E4F616cbf7BF0d",
     "name": "FARM_PENDLEV2_WSRUSD_2025OCT30"
+  },
+  {
+    "addr": "0x6FBc446f25Ab5141C4F7E7711E52DFc0AdA407A5",
+    "name": "FARM_EULER_SENTORA_USDC"
+  },
+  {
+    "addr": "0x1B49666270733CA9b4eA9633bD2E0BA6B5D4fc7c",
+    "name": "FARM_PENDLEV3_RUSD_30OCT25"
+  },
+  {
+    "addr": "0x46E098fDDe9221DA4432AfA3E25aCaC8CA00760B",
+    "name": "FARM_PENDLEV3_SUSDE_27NOV25"
+  },
+  {
+    "addr": "0x6F53c12243D2Fe281cFdFC63601F8B4e713D86De",
+    "name": "FARM_RESERVOIR"
+  },
+  {
+    "addr": "0xb2DbFECE426479F8605D7C9154A55e0657D46790",
+    "name": "ORACLE_CUSD"
+  },
+  {
+    "addr": "0xcb15A0EdcDDB190fb4cED6c4972D0564d6F7D4A7",
+    "name": "ORACLE_STCUSD"
+  },
+  {
+    "addr": "0x6492435AbC7b42f9Fb213969df0A32AD0994d95d",
+    "name": "ORACLE_SRUSDE"
+  },
+  {
+    "addr": "0x7ab218b82F77d00097766b7FEA4dF95A83753524",
+    "name": "ORACLE_ALUSD"
+  },
+  {
+    "addr": "0x2aB982944932dF7B593990c9d15AEe55a016dd03",
+    "name": "FARM_PENDLEV2V3_CUSD_28JAN26"
+  },
+  {
+    "addr": "0xB01bc9679bB5c01ad4900dB9cb452f986Af367ba",
+    "name": "FARM_PENDLEV2V3_STCUSD_29JAN26"
+  },
+  {
+    "addr": "0x6ec8f99e6a7B2b8d0C6E2A897F97922390375c5f",
+    "name": "FARM_PENDLEV2V3_SRUSDE_15JAN26"
+  },
+  {
+    "addr": "0x913D5E835B3E515d00da7594c5454B1D9B929A9e",
+    "name": "FARM_PENDLEV2V3_SYRUPUSDC_18DEC25"
   }
 ]
