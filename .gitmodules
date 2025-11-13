@@ -7,3 +7,9 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/transmissions11/solmate.git
+[submodule "lib/cowprotocol"]
+	path = lib/cowprotocol
+	url = https://github.com/cowprotocol/contracts.git
+[submodule "lib/contracts"]
+	path = lib/contracts
+	url = https://github.com/cowprotocol/contracts
