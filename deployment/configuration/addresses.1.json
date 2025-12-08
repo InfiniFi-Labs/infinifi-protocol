@@ -36,6 +36,26 @@
     "name": "PAUSER_4"
   },
   {
+    "addr": "0xdecaDAc8778D088A30eE811b8Cc4eE72cED9Bf22",
+    "name": "EXECUTOR_1"
+  },
+  {
+    "addr": "0xfd4691dfA327Adb0d6f3c7b4224B3cc881D4F6fa",
+    "name": "EXECUTOR_2"
+  },
+  {
+    "addr": "0xDAdB38219425c761dd0f3a4d684Fc36f533af7bD",
+    "name": "EXECUTOR_3"
+  },
+  {
+    "addr": "0x6DFa1A32604088EB969242AafFb92420F78373f6",
+    "name": "EXECUTOR_4"
+  },
+  {
+    "addr": "0x383965940c950008a4B67BfaA477Fdf6AC91a7F7",
+    "name": "EXECUTOR_5"
+  },
+  {
     "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     "name": "ERC20_USDC"
   },
@@ -110,6 +130,10 @@
   {
     "addr": "0xDCD0f5ab30856F28385F641580Bbd85f88349124",
     "name": "ERC20_ALUSD"
+  },
+  {
+    "addr": "0xC7d7F434C015F2A7E77dF9763ADE300F2171a05a",
+    "name": "ERC20_AUTO_INFINIFI_USDC"
   },
   {
     "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
@@ -545,7 +569,7 @@
   },
   {
     "addr": "0x837a500C6126117b4440474EfF69F67625eCdaC8",
-    "name": "FARM_PENDLEV2V3_TUSDE_2025DEC18"
+    "name": "FARM_PENDLEV2B_TUSDE_2025DEC18"
   },
   {
     "addr": "0x4BE546155461d097A714eF2668893b0d10CA124c",
@@ -566,6 +590,10 @@
   {
     "addr": "0x46E098fDDe9221DA4432AfA3E25aCaC8CA00760B",
     "name": "FARM_PENDLEV3_SUSDE_27NOV25"
+  },
+  {
+    "addr": "0xeb32a309405c72253d5dB9ef28310A8Ff56b6fd7",
+    "name": "FARM_SWAP_V2"
   },
   {
     "addr": "0x6F53c12243D2Fe281cFdFC63601F8B4e713D86De",
@@ -602,5 +630,33 @@
   {
     "addr": "0x913D5E835B3E515d00da7594c5454B1D9B929A9e",
     "name": "FARM_PENDLEV2V3_SYRUPUSDC_18DEC25"
+  },
+  {
+    "addr": "0xfA503F5fa3967789922E35b3a03Fd56076a0440E",
+    "name": "ORACLE_ALUSD_V2"
+  },
+  {
+    "addr": "0xd91Edc64f7d1d344C5955bA0516122ce8111bDb8",
+    "name": "FARM_PENDLEV2V3_ALUSD_11DEC25"
+  },
+  {
+    "addr": "0xA2b300C5D0e9250F646B20ec924efaD36d19Ed91",
+    "name": "ORACLE_FACTORY"
+  },
+  {
+    "addr": "0x936571f0A29F2aB25430a402Fd6c770A063A05f9",
+    "name": "FARM_CAP"
+  },
+  {
+    "addr": "0x92c3A5f226A47a44aD73f04663b305372cc665bf",
+    "name": "FARM_AUTO_INFINIFI_USDC"
+  },
+  {
+    "addr": "0x817d93DbdFd8190bbef0a73fCf5Dd9DA5A87E032",
+    "name": "FARM_AAVEV3_HORIZON_USDC"
+  },
+  {
+    "addr": "0x16A139dA0405Eb9777aDe4F5F0cc2416E5CD8619",
+    "name": "ASSETS_CHECKER"
   }
 ]
