@@ -136,6 +136,10 @@
     "name": "ERC20_AUTO_INFINIFI_USDC"
   },
   {
+    "addr": "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD",
+    "name": "ERC20_RLUSD"
+  },
+  {
     "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
     "name": "ROUTER_KYBER"
   },
@@ -658,5 +662,41 @@
   {
     "addr": "0x16A139dA0405Eb9777aDe4F5F0cc2416E5CD8619",
     "name": "ASSETS_CHECKER"
+  },
+  {
+    "addr": "0xBd2509BFBA7C5904723beC169CBDCb2bD379Da58",
+    "name": "OUTLAND_PORTAL_HUB_IMPLEMENTATION"
+  },
+  {
+    "addr": "0x114967080Cb4B456B8Ec9FDD343F0AE6428ec6b8",
+    "name": "OUTLAND_PORTAL_HUB_PROXY"
+  },
+  {
+    "addr": "0xe945de0D08E2F39B0740FE2d6e50FE2Bb9751eA4",
+    "name": "FARM_CAP_V2"
+  },
+  {
+    "addr": "0x6e6E73093a944ff37CB189BcE79A2C1dE08c4AcD",
+    "name": "FARM_MAPLE_SYRUPUSDC"
+  },
+  {
+    "addr": "0xBE2B5838eb9Eedb637EDe5dF8Ac43b73b4482Ae8",
+    "name": "FARM_AAVE_HORIZON_RLUSD"
+  },
+  {
+    "addr": "0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D",
+    "name": "CHAINLINK_CCIP_ROUTER"
+  },
+  {
+    "addr": "0x1a44076050125825900e736c501f859c50fE728c",
+    "name": "LZ_ENDPOINT"
+  },
+  {
+    "addr": "0x54cB6634BE99dDF4c7502f8E8f3b8D3f27Ba0ee5",
+    "name": "OUTLAND_CONNECTOR_LZ"
+  },
+  {
+    "addr": "0x41193099288DF3F56a8323812E2844A7CfaFdd24",
+    "name": "OUTLAND_CONNECTOR_CCIP"
   }
 ]
