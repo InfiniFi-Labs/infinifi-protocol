@@ -96,6 +96,10 @@
     "name": "ERC20_SYRUPUSDC"
   },
   {
+    "addr": "0xC39a5A616F0ad1Ff45077FA2dE3f79ab8eb8b8B9",
+    "name": "ERC20_MAPLE_INSTITUTIONAL"
+  },
+  {
     "addr": "0x90D2af7d622ca3141efA4d8f1F24d86E5974Cc8F",
     "name": "ERC20_EUSDE"
   },
@@ -348,6 +352,10 @@
     "name": "GATEWAY_PROXY_ADMIN"
   },
   {
+    "addr": "0x4f0122D43aB4893d5977FB0358B73CC178339dFE",
+    "name": "UNSTAKE_AND_REDEEM_HELPER"
+  },
+  {
     "addr": "0xa406aFC7967C63C5c454AD1f0e0dB9a761fe26e9",
     "name": "EMERGENCY_WITHDRAWAL"
   },
@@ -396,44 +404,8 @@
     "name": "FARM_COWSWAP_SUSDE"
   },
   {
-    "addr": "0xCfdD5c03D640e4ecEF25f32C12411f71B976A4F5",
-    "name": "FARM_PENDLEV2_SUSDE_20250731"
-  },
-  {
-    "addr": "0xc39fb0D8597adDB96Ab599eCA23a1556De17Bfe3",
-    "name": "FARM_PENDLEV2_USDE_20250731"
-  },
-  {
-    "addr": "0xCCD2D84b9Ecec546Eacb7fb3e17f74Ac86B33728",
-    "name": "FARM_PENDLEV2_USDO_20250619"
-  },
-  {
-    "addr": "0xE611D7DF6f6988cFCe36030061764c686E6f725C",
-    "name": "FARM_PENDLEV2_EUSDE_20250814"
-  },
-  {
-    "addr": "0x7BA3Bc4E47F9c44847Caf58bA2e3957D984995A5",
-    "name": "FARM_PENDLEV2_SYRUPUSDC_20250821"
-  },
-  {
     "addr": "0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b",
     "name": "ERC20_SYRUPUSDC"
-  },
-  {
-    "addr": "0x79a1141f29a849Df99daB9620dC119Ad040ae271",
-    "name": "FARM_PENDLEV2_USDS_20250814"
-  },
-  {
-    "addr": "0x318E617B14fc46241E22cb4B932d3F4AbaD548b5",
-    "name": "FARM_PENDLEV2_WSTUSR_20250925"
-  },
-  {
-    "addr": "0xB6f30bBc3d1797216Dbbf8f62C47C30d9F980E7F",
-    "name": "FARM_PENDLEV2_USR_20250904"
-  },
-  {
-    "addr": "0xeA286206550DA203F0eb582185d9C969306B70e3",
-    "name": "FARM_PENDLEV2_SLVLUSD_20250925"
   },
   {
     "addr": "0x56af923033cbe7F6b83AEb9cBD7621076Fb26647",
@@ -460,32 +432,12 @@
     "name": "FARM_ETHENA"
   },
   {
-    "addr": "0x6F8A9Eb6516eAe5B8b3f8Cc95AE4c79F4c33Bc66",
-    "name": "FARM_PENDLEV2V2_SUSDE_20250925"
-  },
-  {
-    "addr": "0xb6931f0a698F4f40cBe0D79045dC2Ec223F2616D",
-    "name": "FARM_PENDLEV2V2_USDE_20250925"
-  },
-  {
-    "addr": "0x1b286D4c12C9F7Cc8a49836bd88d33AE804dE53d",
-    "name": "FARM_PENDLEV2V2_SUSDE_20250731"
-  },
-  {
-    "addr": "0x44f9499122a7434252Aa7Df727D9552c2ba9c03B",
-    "name": "FARM_PENDLEV2V2_USDE_20250731"
-  },
-  {
     "addr": "0x5fEaad299BF772505e79250Ec58E28fdfdc52777",
     "name": "MANUAL_REBALANCER_V2"
   },
   {
     "addr": "0x3d627013d54388B3Fc5A9De153C4544c0Bc4AF13",
     "name": "ORACLE_EUSDE"
-  },
-  {
-    "addr": "0x443e7F00B88ce7c1D9c0985d429e6688D3298b48",
-    "name": "FARM_PENDLEV2V2_EUSDE_20250814"
   },
   {
     "addr": "0x6Cb48B801f449bA52C1a3477484F4405235aF976",
@@ -520,30 +472,6 @@
     "name": "ORACLE_LVLUSD_V2"
   },
   {
-    "addr": "0xF3C61F78684D15F413aF85fE6cc6773DE87a533c",
-    "name": "FARM_PENDLEV2V3_TUSDE_2025SEP25"
-  },
-  {
-    "addr": "0xd5F1FC2429F371aE730e6728B1B702a1cA4b88Fb",
-    "name": "FARM_PENDLEV2V3_PUSDE_2025OCT16"
-  },
-  {
-    "addr": "0x7a566E17B131E828F76B30609688C8C79242D268",
-    "name": "FARM_PENDLEV2V2_USDE_2025NOV27"
-  },
-  {
-    "addr": "0xC23508761c84B5ad65F1137591Dc887f142cFCf5",
-    "name": "FARM_PENDLEV2V2_SUSDE_2025NOV27"
-  },
-  {
-    "addr": "0x0B915F7bF18498B7C9b1027e90162398B5D4d831",
-    "name": "FARM_PENDLEV2_SYRUPUSDC_2025OCT30"
-  },
-  {
-    "addr": "0x6a012b1Ee6C61B099F536cE6D68D63E974FacAB6",
-    "name": "FARM_PENDLEV2V2_SYRUPUSDC_2025OCT30"
-  },
-  {
     "addr": "0x76D2E84009dAE457f8667D823c7c96e9A7c35B78",
     "name": "FARM_MORPHO_INFINIFI_USDC"
   },
@@ -560,14 +488,6 @@
     "name": "ORACLE_SYRUPUSDC"
   },
   {
-    "addr": "0x506CDEc087940FB225fd154f0398FC7d20E84092",
-    "name": "FARM_PENDLEV2V2_WSTUSR_20250925"
-  },
-  {
-    "addr": "0x20B7a78b5beFac90D715D258D80A47a119fd0ddC",
-    "name": "FARM_PENDLEV2V2_SLVLUSD_20250925"
-  },
-  {
     "addr": "0xd880D7C5CaFdbE2AEc281250995abF612235e563",
     "name": "FARM_SPARK_SUSDC_V2"
   },
@@ -580,10 +500,6 @@
     "name": "FARM_LEVEL"
   },
   {
-    "addr": "0x2510Fb368EE818935f0Ed49C44E4F616cbf7BF0d",
-    "name": "FARM_PENDLEV2_WSRUSD_2025OCT30"
-  },
-  {
     "addr": "0x6FBc446f25Ab5141C4F7E7711E52DFc0AdA407A5",
     "name": "FARM_EULER_SENTORA_USDC"
   },
@@ -594,10 +510,6 @@
   {
     "addr": "0x46E098fDDe9221DA4432AfA3E25aCaC8CA00760B",
     "name": "FARM_PENDLEV3_SUSDE_27NOV25"
-  },
-  {
-    "addr": "0xeb32a309405c72253d5dB9ef28310A8Ff56b6fd7",
-    "name": "FARM_SWAP_V2"
   },
   {
     "addr": "0x6F53c12243D2Fe281cFdFC63601F8B4e713D86De",
@@ -620,6 +532,14 @@
     "name": "ORACLE_ALUSD"
   },
   {
+    "addr": "0xfA503F5fa3967789922E35b3a03Fd56076a0440E",
+    "name": "ORACLE_ALUSD_V2"
+  },
+  {
+    "addr": "0xA2b300C5D0e9250F646B20ec924efaD36d19Ed91",
+    "name": "ORACLE_FACTORY"
+  },
+  {
     "addr": "0x2aB982944932dF7B593990c9d15AEe55a016dd03",
     "name": "FARM_PENDLEV2V3_CUSD_28JAN26"
   },
@@ -634,10 +554,6 @@
   {
     "addr": "0x913D5E835B3E515d00da7594c5454B1D9B929A9e",
     "name": "FARM_PENDLEV2V3_SYRUPUSDC_18DEC25"
-  },
-  {
-    "addr": "0xfA503F5fa3967789922E35b3a03Fd56076a0440E",
-    "name": "ORACLE_ALUSD_V2"
   },
   {
     "addr": "0xd91Edc64f7d1d344C5955bA0516122ce8111bDb8",
@@ -698,5 +614,29 @@
   {
     "addr": "0x41193099288DF3F56a8323812E2844A7CfaFdd24",
     "name": "OUTLAND_CONNECTOR_CCIP"
+  },
+  {
+    "addr": "0xF56E946e92FeF6a050F482C560b5f8DcCB8163B3",
+    "name": "FARM_MAPLE_INSTITUTIONAL"
+  },
+  {
+    "addr": "0x0B9B41DE1486bD4131b3D8eEA8d6E54e10Ba6189",
+    "name": "VAULT_7540_ST"
+  },
+  {
+    "addr": "0xa6cc2B925e5cb587a46e9e30b528e0F8bc4ffcCC",
+    "name": "VAULT_7540_LPT"
+  },
+  {
+    "addr": "0xC1eb6afBbA6C4743B6C4ED8E75F49395eb9253d0",
+    "name": "FARM_GAUNTLET_ALPHA"
+  },
+  {
+    "name": "GATEWAY_IMPLEMENTATION_V3",
+    "addr": "0xb44e494535A8fC1f0081F4F9289BCc7c57FbffB6"
+  },
+  {
+    "name": "MIGRATION_CONTROLLER",
+    "addr": "0x5F5403656E4Db95aCcF1064A714B1bcE351839F8"
   }
 ]
