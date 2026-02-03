@@ -140,8 +140,24 @@
     "name": "ERC20_AUTO_INFINIFI_USDC"
   },
   {
+    "addr": "0xa7569A44f348d3D70d8ad5889e50F78E33d80D35",
+    "name": "ERC20_AUTO_USD"
+  },
+  {
     "addr": "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD",
     "name": "ERC20_RLUSD"
+  },
+  {
+    "addr": "0x085780639CC2cACd35E474e71f4d000e2405d8f6",
+    "name": "ERC20_FXUSD"
+  },
+  {
+    "addr": "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
+    "name": "ERC20_PYUSD"
+  },
+  {
+    "addr": "0xb576765fB15505433aF24FEe2c0325895C559FB2",
+    "name": "ERC4626_MORPHO_SENTORA_PYUSD"
   },
   {
     "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
@@ -638,5 +654,25 @@
   {
     "name": "MIGRATION_CONTROLLER",
     "addr": "0x5F5403656E4Db95aCcF1064A714B1bcE351839F8"
+  },
+  {
+    "name": "FARM_GAUNTLET_ALPHA_V2",
+    "addr": "0x2F59B7EE5aa0F7834b4526A015bC506A4c608c25"
+  },
+  {
+    "name": "FARM_MORPHO_SENTORA_PYUSD",
+    "addr": "0x84FF7Ef9568807c93436F09E2E613dE2aF3FE4EE"
+  },
+  {
+    "name": "FARM_AUTO_USD",
+    "addr": "0x15Dc4C43B0D3283aE4f193bb8aC97181F4bBB56c"
+  },
+  {
+    "name": "FARM_FASANARA_MPC",
+    "addr": "0x9E5efC5F387D8661C1AFB2469B7EeF6972451852"
+  },
+  {
+    "name": "FARM_FASANARA_MPC_ESCROW",
+    "addr": "0x868C82b7BAa3675F9Da1404510DB60c1f6A7741A"
   }
 ]
