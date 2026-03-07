@@ -694,5 +694,9 @@
   {
     "name": "FARM_FALCONX_ESCROW",
     "addr": "0x1B3A2680713Aa1CdAE1403F7D2B1D5E936d9927C"
+  },
+  {
+    "name": "RWA_RATE_MANAGER",
+    "addr": "0x11F6FAb3f4D8635880C3e80cbae8AEF8136D4189"
   }
 ]
