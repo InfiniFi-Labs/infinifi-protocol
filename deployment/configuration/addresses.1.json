@@ -696,6 +696,14 @@
     "addr": "0x1B3A2680713Aa1CdAE1403F7D2B1D5E936d9927C"
   },
   {
+    "name": "PL_SMOOTHER",
+    "addr": "0xC324569141697045B9EdE54B5d4623a691ed57A4"
+  },
+  {
+    "name": "FARM_LIQUIDATION",
+    "addr": "0x1ad60c683EA27Bef74B2C27c221486880e07592A"
+  },
+  {
     "name": "RWA_RATE_MANAGER",
     "addr": "0x11F6FAb3f4D8635880C3e80cbae8AEF8136D4189"
   }
