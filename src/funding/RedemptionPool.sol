@@ -74,6 +74,7 @@ abstract contract RedemptionPool {
                 assetRequired = remainingAssets;
                 // here 'receiptToBurn' is the amount of remaining assets converted to receipt token using the ratio
                 receiptToBurn = remainingAssets.divWadUp(_convertReceiptToAssetRatio); // iUSD
+                // forge-lint: disable-next-line(unsafe-typecast)
                 uint96 newReceiptAmount = request.amount - uint96(receiptToBurn); // iUSD
                 queue.updateFront(newReceiptAmount); // iUSD
 
@@ -126,6 +127,8 @@ abstract contract RedemptionPool {
         require(_amount > 0, EnqueueAmountZero());
         require(_amount <= type(uint96).max, EnqueueAmountTooLarge());
         totalEnqueuedRedemptions += _amount;
+        // casting to 'uint96' is safe because of the require above
+        // forge-lint: disable-next-line(unsafe-typecast)
         queue.pushBack(RedemptionQueue.RedemptionRequest({amount: uint96(_amount), recipient: _recipient}));
         emit RedemptionQueued(block.timestamp, _recipient, _amount);
     }

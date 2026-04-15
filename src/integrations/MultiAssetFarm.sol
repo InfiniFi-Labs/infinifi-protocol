@@ -7,7 +7,7 @@ import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {Accounting} from "@finance/Accounting.sol";
-import {Farm, IFarm} from "@integrations/Farm.sol";
+import {Farm} from "@integrations/Farm.sol";
 
 /// @notice InfiniFi Farm that can hold multiple asset tokens.
 abstract contract MultiAssetFarm is Farm {

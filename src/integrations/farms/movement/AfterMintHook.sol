@@ -90,8 +90,11 @@ contract AfterMintHook is IAfterMintHook, CoreControlled {
             unchecked {
                 uint256 farmAssets = IFarm(_farms[index]).assets();
 
+                // casting to 'int256' is safe because type(int256).max is a very large amount of assets
+                // forge-lint: disable-start(unsafe-typecast)
                 int256 difference =
                     int256((farmAssets + _amount) * _totalPower) - int256(_weights[index] * _totalAssets);
+                // forge-lint: disable-end(unsafe-typecast)
 
                 if (difference < minChange) {
                     // minor optimization to avoid checking pause on unfit candidates

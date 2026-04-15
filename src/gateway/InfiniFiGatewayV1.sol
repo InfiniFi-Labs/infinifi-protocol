@@ -143,6 +143,7 @@ contract InfiniFiGatewayV1 is CoreControlled, ReentrancyGuardTransient {
             if (_zapFee != 0) {
                 uint256 fee = receiptTokens.mulWadDown(_zapFee);
                 receiptTokens -= fee;
+                // forge-lint: disable-next-line(erc20-unchecked-transfer)
                 iusd.transfer(getAddress("yieldSharing"), fee);
             }
         }
@@ -162,6 +163,7 @@ contract InfiniFiGatewayV1 is CoreControlled, ReentrancyGuardTransient {
         (uint256 receiptTokens, ReceiptToken iusd) = _zapToReceiptTokens(_token, _amount, _router, _routerData);
 
         // send iUSD to receiver
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         iusd.transfer(_to, receiptTokens);
         return receiptTokens;
     }
@@ -233,6 +235,7 @@ contract InfiniFiGatewayV1 is CoreControlled, ReentrancyGuardTransient {
         StakedToken siusd = StakedToken(getAddress("stakedToken"));
         LockingController lockingController = LockingController(getAddress("lockingController"));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         siusd.transferFrom(msg.sender, address(this), _amount);
         uint256 receiptTokens = siusd.redeem(_amount, address(this), address(this));
 
@@ -249,6 +252,7 @@ contract InfiniFiGatewayV1 is CoreControlled, ReentrancyGuardTransient {
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
         LockingController lockingController = LockingController(getAddress("lockingController"));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         iusd.transferFrom(msg.sender, address(this), _amount);
         iusd.approve(address(lockingController), _amount);
         lockingController.createPosition(_amount, _unwindingEpochs, _recipient);
@@ -258,6 +262,7 @@ contract InfiniFiGatewayV1 is CoreControlled, ReentrancyGuardTransient {
         LockingController lockingController = LockingController(getAddress("lockingController"));
         LockedPositionToken liusd = LockedPositionToken(lockingController.shareToken(_unwindingEpochs));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         liusd.transferFrom(msg.sender, address(this), _shares);
         liusd.approve(address(lockingController), _shares);
         lockingController.startUnwinding(_shares, _unwindingEpochs, msg.sender);
@@ -271,6 +276,7 @@ contract InfiniFiGatewayV1 is CoreControlled, ReentrancyGuardTransient {
         LockingController lockingController = LockingController(getAddress("lockingController"));
         LockedPositionToken liusd = LockedPositionToken(lockingController.shareToken(_oldUnwindingEpochs));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         liusd.transferFrom(msg.sender, address(this), _shares);
         liusd.approve(address(lockingController), _shares);
         lockingController.increaseUnwindingEpochs(_shares, _oldUnwindingEpochs, _newUnwindingEpochs, msg.sender);
@@ -281,9 +287,8 @@ contract InfiniFiGatewayV1 is CoreControlled, ReentrancyGuardTransient {
         whenNotPaused
         nonReentrant
     {
-        LockingController(getAddress("lockingController")).cancelUnwinding(
-            msg.sender, _unwindingTimestamp, _newUnwindingEpochs
-        );
+        LockingController(getAddress("lockingController"))
+            .cancelUnwinding(msg.sender, _unwindingTimestamp, _newUnwindingEpochs);
     }
 
     function withdraw(uint256 _unwindingTimestamp) external whenNotPaused nonReentrant {
@@ -301,6 +306,7 @@ contract InfiniFiGatewayV1 is CoreControlled, ReentrancyGuardTransient {
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
         RedeemController redeemController = RedeemController(getAddress("redeemController"));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         iusd.transferFrom(msg.sender, address(this), _amount);
         iusd.approve(address(redeemController), _amount);
         uint256 assetsOut = redeemController.redeem(_to, _amount);
@@ -318,9 +324,8 @@ contract InfiniFiGatewayV1 is CoreControlled, ReentrancyGuardTransient {
         AllocationVoting.AllocationVote[] calldata _liquidVotes,
         AllocationVoting.AllocationVote[] calldata _illiquidVotes
     ) external whenNotPaused nonReentrant {
-        AllocationVoting(getAddress("allocationVoting")).vote(
-            msg.sender, _asset, _unwindingEpochs, _liquidVotes, _illiquidVotes
-        );
+        AllocationVoting(getAddress("allocationVoting"))
+            .vote(msg.sender, _asset, _unwindingEpochs, _liquidVotes, _illiquidVotes);
     }
 
     function multiVote(

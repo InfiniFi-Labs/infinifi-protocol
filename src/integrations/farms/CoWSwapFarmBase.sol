@@ -7,7 +7,6 @@ import {GPv2Settlement} from "@cowprotocol/contracts/GPv2Settlement.sol";
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 import {GPv2Order, IERC20 as ICoWERC20} from "@cowprotocol/contracts/libraries/GPv2Order.sol";
 
-import {Farm} from "@integrations/Farm.sol";
 import {Accounting} from "@finance/Accounting.sol";
 import {MultiAssetFarm} from "@integrations/MultiAssetFarm.sol";
 
@@ -79,6 +78,8 @@ abstract contract CoWSwapFarmBase is MultiAssetFarm {
             receiver: address(this),
             sellAmount: _amountIn,
             buyAmount: _minAmountOut,
+            // casting to 'uint32' is safe because type(uint32).max timestamp is 2106-02-07
+            // forge-lint: disable-next-line(unsafe-typecast)
             validTo: uint32(block.timestamp + _SIGN_COOLDOWN),
             // keccak256 {"appCode":"infiniFi","version":"1.0.0","metadata":{}}
             appData: 0x3cac71ef99d0dfbf5b937334b5b7ab672b679ba2bbd4d6fe8e0c54a2dab31109,

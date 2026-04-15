@@ -43,10 +43,7 @@ contract RedeemController is Farm, RedemptionPool, IRedeemController {
     /// @dev we can set this value to a higher number if we want to prevent griefing
     /// @dev as users could enqueue thousands of small amounts to "stuff" the redemption queue
     /// @param _minRedemptionAmount the minimum redemption amount
-    function setMinRedemptionAmount(uint256 _minRedemptionAmount)
-        external
-        onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS)
-    {
+    function setMinRedemptionAmount(uint256 _minRedemptionAmount) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
         require(_minRedemptionAmount > 0, RedeemAmountTooLow(_minRedemptionAmount, 1));
         minRedemptionAmount = _minRedemptionAmount;
         emit MinRedemptionAmountUpdated(block.timestamp, _minRedemptionAmount);
@@ -97,6 +94,7 @@ contract RedeemController is Farm, RedemptionPool, IRedeemController {
         // Trying to do so would be very expensive in terms of gas and could lead to slippage losses and potential accounting issues
         if (queueLength() > 0) {
             uint256 _amountReceiptToQueue = _convertAssetToReceipt(assetAmountOut, convertRatio);
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             ReceiptToken(receiptToken).transferFrom(msg.sender, address(this), _amountReceiptToQueue);
             _enqueue(_to, _amountReceiptToQueue);
 
@@ -126,6 +124,7 @@ contract RedeemController is Farm, RedemptionPool, IRedeemController {
 
             // then enqueue the remaining amount in the redemption queue
             uint256 remainingReceiptToQueue = _receiptAmountIn - amountReceiptToBurn;
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             ReceiptToken(receiptToken).transferFrom(msg.sender, address(this), remainingReceiptToQueue);
             _enqueue(_to, remainingReceiptToQueue);
 
@@ -162,12 +161,7 @@ contract RedeemController is Farm, RedemptionPool, IRedeemController {
         ERC20(assetToken).safeTransfer(_to, _amount);
     }
 
-    function withdraw(uint256 amount, address to)
-        external
-        override
-        onlyCoreRole(CoreRoles.FARM_MANAGER)
-        whenNotPaused
-    {
+    function withdraw(uint256 amount, address to) external override onlyCoreRole(CoreRoles.FARM_MANAGER) whenNotPaused {
         // override to remove check on slippage
         _withdraw(amount, to);
     }

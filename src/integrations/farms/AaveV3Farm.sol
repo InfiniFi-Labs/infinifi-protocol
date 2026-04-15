@@ -16,7 +16,7 @@ import {IAaveDataProvider} from "@interfaces/aave/IAaveDataProvider.sol";
 contract AaveV3Farm is Farm {
     using SafeERC20 for IERC20;
 
-    error ZeroAddress(address);
+    error RewardsZeroAssets();
 
     event LendingPoolUpdated(uint256 indexed timestamp, address lendingPool);
 
@@ -31,7 +31,7 @@ contract AaveV3Farm is Farm {
     }
 
     function setLendingPool(address _lendingPool) external onlyCoreRole(CoreRoles.GOVERNOR) {
-        require(lendingPool != address(0), ZeroAddress(_lendingPool));
+        require(_lendingPool != address(0), ZeroAddress(_lendingPool));
         lendingPool = _lendingPool;
         emit LendingPoolUpdated(block.timestamp, _lendingPool);
     }
@@ -43,7 +43,9 @@ contract AaveV3Farm is Farm {
 
     /// @notice Returns the liquidity available on aave for the assetToken
     /// @dev This is the amount of assetToken that is available to withdraw from aave for asset Token
-    /// @dev and also adds the amount of assetToken held by the Farm contract (not deposited to aave if any)
+    /// @dev note that naked assetTokens not deposited to aave are ignored from assets() and from liquidity()
+    /// because these cannot be pulled with the withdraw function, so always call deposit() after moving
+    /// assetTokens to this farm in order to keep accounting consistent.
     function liquidity() public view override returns (uint256) {
         uint256 totalAssets = assets();
 
@@ -76,5 +78,44 @@ contract AaveV3Farm is Farm {
     /// @dev if amount is uint256.max, it will withdraw all that is available on aave
     function _withdraw(uint256 _amount, address _to) internal override {
         IAaveV3Pool(lendingPool).withdraw(assetToken, _amount, _to);
+    }
+
+    // some farms have merkl rewards in the same aToken as the deposit receipt,
+    // which can earn additional APR distributed as assets() spike.
+    // This is the case for USDe, RLUSD, PYUSD, USDtb, USDS, ...
+    // For rewards claiming in other tokens, see the MerklRewardsClaimer contract.
+    /// @dev _rewardToken does not necessarily match aToken address because Merkl deploys
+    /// wrapper contracts that allows campaigns to not be prefunded.
+    function claimMerklRewards(uint256 _amount, address _rewardToken, bytes32[] calldata _proof)
+        external
+        whenNotPaused
+        onlyCoreRole(CoreRoles.FARM_SWAP_CALLER)
+    {
+        address _rewardContract = rewardContract;
+        require(_rewardContract != address(0), RewardsNotEnabled());
+
+        uint256 assetsBefore = assets();
+
+        {
+            address[] memory users = new address[](1);
+            users[0] = address(this);
+            address[] memory tokens = new address[](1);
+            tokens[0] = _rewardToken;
+            uint256[] memory amounts = new uint256[](1);
+            amounts[0] = _amount;
+            bytes32[][] memory proofs = new bytes32[][](1);
+            proofs[0] = _proof;
+            (bool success,) = _rewardContract.call(
+                abi.encodeWithSignature(
+                    "claim(address[],address[],uint256[],bytes32[][])", users, tokens, amounts, proofs
+                )
+            );
+            require(success, RewardsClaimFailed());
+        }
+
+        uint256 assetsAfter = assets();
+        require(assetsAfter > assetsBefore, RewardsZeroAssets());
+
+        emit Claimed(block.timestamp, assetsAfter - assetsBefore);
     }
 }

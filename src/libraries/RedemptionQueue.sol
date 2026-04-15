@@ -98,6 +98,7 @@ library RedemptionQueue {
         }
         // By construction, length is a uint128, so the check above ensures that index can be safely downcast to uint128
         unchecked {
+            // forge-lint: disable-next-line(unsafe-typecast)
             return _redemptionRequestsQueue._data[_redemptionRequestsQueue._begin + uint128(_index)];
         }
     }

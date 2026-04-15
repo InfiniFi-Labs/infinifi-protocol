@@ -6,7 +6,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
 import {Farm} from "@integrations/Farm.sol";
-import {IOracle} from "@interfaces/IOracle.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {Accounting} from "@finance/Accounting.sol";
 import {IMaturityFarm, IFarm} from "@interfaces/IMaturityFarm.sol";
@@ -138,7 +137,11 @@ contract SwapFarm is Farm, IMaturityFarm {
         _afterWrap(wrapTokenReceived);
     }
 
-    function _afterWrap(uint256 /*_wrapTokenReceived*/ ) internal virtual {}
+    function _afterWrap(
+        uint256 /*_wrapTokenReceived*/
+    )
+        internal
+        virtual {}
 
     /// @notice Unwraps wrapTokens to assetTokens.
     /// @dev The transaction may be submitted privately to avoid sandwiching, and the function
@@ -167,5 +170,9 @@ contract SwapFarm is Farm, IMaturityFarm {
         require(assetsReceived >= minAssetsOut, SlippageTooHigh(minAssetsOut, assetsReceived));
     }
 
-    function _beforeUnwrap(uint256 /*_wrapTokenAmount*/ ) internal virtual {}
+    function _beforeUnwrap(
+        uint256 /*_wrapTokenAmount*/
+    )
+        internal
+        virtual {}
 }

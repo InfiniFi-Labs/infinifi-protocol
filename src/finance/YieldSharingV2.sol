@@ -20,6 +20,7 @@ contract YieldVestingEscrow is Ownable {
     constructor() Ownable(msg.sender) {}
 
     function send(address _token, address _to, uint256 _amount) external onlyOwner {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         ReceiptToken(_token).transfer(_to, _amount);
     }
 }
@@ -180,6 +181,8 @@ contract YieldSharingV2 is CoreControlled {
 
         uint256 assetsInReceiptTokens = assets.divWadDown(receiptTokenPrice);
 
+        // casting to 'int256' is safe because type(int256).max is an irrealistically large amount of receiptTokens
+        // forge-lint: disable-next-line(unsafe-typecast)
         return int256(assetsInReceiptTokens) - int256(ReceiptToken(receiptToken).totalSupply());
     }
 
@@ -191,7 +194,11 @@ contract YieldSharingV2 is CoreControlled {
         distributeInterpolationRewards();
 
         int256 yield = unaccruedYield();
+        // casting to 'uint256' is safe because of 'if'
+        // forge-lint: disable-next-line(unsafe-typecast)
         if (yield > 0) _handlePositiveYield(uint256(yield));
+        // casting to 'uint256' is safe because of 'else'
+        // forge-lint: disable-next-line(unsafe-typecast)
         else if (yield < 0) _handleNegativeYield(uint256(-yield));
 
         emit YieldAccrued(block.timestamp, yield);
@@ -205,7 +212,11 @@ contract YieldSharingV2 is CoreControlled {
         uint256 amount = ReceiptToken(receiptToken).balanceOf(stakedToken);
         assert(amount <= type(uint208).max);
 
+        // casting to 'uint48' is safe because type(uint48).max timestamp is very far in the future
+        // forge-lint: disable-next-line(unsafe-typecast)
         stakedReceiptTokenCache.blockTimestamp = uint48(block.timestamp);
+        // casting to 'uint208' is safe because of the assert above
+        // forge-lint: disable-next-line(unsafe-typecast)
         stakedReceiptTokenCache.amount = uint208(amount);
 
         return amount;
@@ -291,6 +302,7 @@ contract YieldSharingV2 is CoreControlled {
         if (_performanceFee > 0) {
             uint256 fee = _positiveYield.mulWadDown(_performanceFee);
             if (fee > 0) {
+                // forge-lint: disable-next-line(erc20-unchecked-transfer)
                 ReceiptToken(receiptToken).transfer(performanceFeeRecipient, fee);
                 _positiveYield -= fee;
             }
@@ -305,7 +317,10 @@ contract YieldSharingV2 is CoreControlled {
         // yield split to staked users
         uint256 stakingProfit = _positiveYield.mulDivDown(stakedReceiptTokens, totalReceiptTokens);
         if (stakingProfit > 0) {
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             ReceiptToken(receiptToken).transfer(address(escrow), stakingProfit);
+            // casting to 'uint208' is safe because type(uint208).max would be an outrageously large rate per second
+            // forge-lint: disable-next-line(unsafe-typecast)
             point.rate = uint208(vesting() / interpolationDuration);
             point.lastAccrued = uint32(block.timestamp);
         }
@@ -358,6 +373,7 @@ contract YieldSharingV2 is CoreControlled {
         uint256 sourceAllowance = ReceiptToken(receiptToken).allowance(_source, address(this));
         uint256 amount = sourceAllowance < sourceBalance ? sourceAllowance : sourceBalance;
         if (amount > 0) {
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             ReceiptToken(receiptToken).transferFrom(_source, address(this), amount);
         }
     }

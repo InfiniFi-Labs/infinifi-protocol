@@ -12,7 +12,11 @@ interface ILevelReserveLens {
 
 /// @notice Returns the price of lvlUSD, in $ with 18 decimals.
 contract LevelOracle is IOracle {
-    address public constant levelReserveLens = 0x29759944834e08acE755dcEA71491413f7e2CBAD;
+    address public immutable levelReserveLens;
+
+    constructor(address _levelReserveLens) {
+        levelReserveLens = _levelReserveLens;
+    }
 
     function price() external view override returns (uint256) {
         uint256 _price = ILevelReserveLens(levelReserveLens).getReservePrice();

@@ -8,7 +8,6 @@ import {IOracle} from "@interfaces/IOracle.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {FarmRegistry} from "@integrations/FarmRegistry.sol";
 import {CoreControlled} from "@core/CoreControlled.sol";
-import {FixedPriceOracle} from "@finance/oracles/FixedPriceOracle.sol";
 
 /// @notice InfiniFi Accounting contract
 contract Accounting is CoreControlled {

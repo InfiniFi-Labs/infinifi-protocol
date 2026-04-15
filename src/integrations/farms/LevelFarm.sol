@@ -5,9 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
-import {Farm} from "@integrations/Farm.sol";
 import {IFarm} from "@interfaces/IFarm.sol";
-import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {Accounting} from "@finance/Accounting.sol";
 import {IMaturityFarm} from "@interfaces/IMaturityFarm.sol";
 import {MultiAssetFarm} from "@integrations/MultiAssetFarm.sol";

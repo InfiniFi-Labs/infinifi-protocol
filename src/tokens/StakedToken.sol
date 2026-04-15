@@ -158,6 +158,7 @@ contract StakedToken is ERC4626, CoreControlled {
     /// ---------------------------------------------------------------------------
 
     function depositRewards(uint256 _amount) external onlyCoreRole(CoreRoles.FINANCE_MANAGER) {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         ERC20(asset()).transferFrom(msg.sender, address(this), _amount);
         uint256 epoch = block.timestamp.nextEpoch();
         epochRewards[epoch] += _amount;

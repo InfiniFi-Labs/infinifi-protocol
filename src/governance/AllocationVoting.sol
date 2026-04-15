@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
-import {IFarm} from "@interfaces/IFarm.sol";
 import {EpochLib} from "@libraries/EpochLib.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {FarmTypes} from "@libraries/FarmTypes.sol";

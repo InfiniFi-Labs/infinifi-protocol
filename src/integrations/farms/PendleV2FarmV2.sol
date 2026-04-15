@@ -5,7 +5,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
-import {IOracle} from "@interfaces/IOracle.sol";
 import {ISYToken} from "@interfaces/pendle/ISYToken.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {Accounting} from "@finance/Accounting.sol";
@@ -372,8 +371,11 @@ contract PendleV2FarmV2 is CoWSwapFarmBase, IMaturityFarm {
         // compute the yield to interpolate, which is the target amount (maturityAssetAmount) minus the amount of assets
         // wrapped minus the already interpolated yield (can be != 0 if we made multiple wraps)
         uint256 totalWrappedAssets = yieldTokensToAssets(totalWrappedYieldTokens);
+        // casting to 'int256' is safe because type(int256).max is an irrealistically large amount of assets
+        // forge-lint: disable-start(unsafe-typecast)
         int256 totalYieldRemainingToInterpolate =
             int256(maturityAssetAmount) - int256(totalWrappedAssets) - int256(alreadyInterpolatedYield);
+        // forge-lint: disable-end(unsafe-typecast)
 
         // in case the rate moved against us, we return the already interpolated yield
         if (totalYieldRemainingToInterpolate < 0) {
@@ -382,8 +384,11 @@ contract PendleV2FarmV2 is CoWSwapFarmBase, IMaturityFarm {
 
         // cannot underflow because lastWrappedTimestamp cannot be after maturity as we cannot wrap after maturity
         // and lastWrappedTimestamp is always > 0 otherwise the first line of this function would have returned 0
+        // casting to 'uint256' is safe because of the if+return above
+        // forge-lint: disable-start(unsafe-typecast)
         uint256 yieldPerSecond =
             (uint256(totalYieldRemainingToInterpolate) * FixedPointMathLib.WAD) / (maturity - lastWrappedTimestamp);
+        // forge-lint: disable-end(unsafe-typecast)
         uint256 secondsSinceLastWrap = block.timestamp - lastWrappedTimestamp;
         uint256 interpolatedYield = yieldPerSecond * secondsSinceLastWrap;
         return alreadyInterpolatedYield + interpolatedYield / FixedPointMathLib.WAD;

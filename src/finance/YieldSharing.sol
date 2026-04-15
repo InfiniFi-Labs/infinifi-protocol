@@ -135,6 +135,8 @@ contract YieldSharing is CoreControlled {
 
         uint256 assetsInReceiptTokens = assets.divWadDown(receiptTokenPrice);
 
+        // casting to 'int256' is safe because type(int256).max is a very large amount of receiptTokens
+        // forge-lint: disable-next-line(unsafe-typecast)
         return int256(assetsInReceiptTokens) - int256(ReceiptToken(receiptToken).totalSupply());
     }
 
@@ -144,7 +146,11 @@ contract YieldSharing is CoreControlled {
     /// are not enough first-loss capital stakers to slash.
     function accrue() external whenNotPaused {
         int256 yield = unaccruedYield();
+        // casting to 'uint256' is safe because of 'if'
+        // forge-lint: disable-next-line(unsafe-typecast)
         if (yield > 0) _handlePositiveYield(uint256(yield));
+        // casting to 'uint256' is safe because of 'else'
+        // forge-lint: disable-next-line(unsafe-typecast)
         else if (yield < 0) _handleNegativeYield(uint256(-yield));
 
         emit YieldAccrued(block.timestamp, yield);
@@ -158,7 +164,11 @@ contract YieldSharing is CoreControlled {
         uint256 amount = ReceiptToken(receiptToken).balanceOf(stakedToken);
         assert(amount <= type(uint208).max);
 
+        // casting to 'uint48' is safe because type(uint48).max timestamp is very far in the future
+        // forge-lint: disable-next-line(unsafe-typecast)
         stakedReceiptTokenCache.blockTimestamp = uint48(block.timestamp);
+        // casting to 'uint208' is safe because of the assert above
+        // forge-lint: disable-next-line(unsafe-typecast)
         stakedReceiptTokenCache.amount = uint208(amount);
 
         return amount;
@@ -205,6 +215,7 @@ contract YieldSharing is CoreControlled {
         if (_performanceFee > 0) {
             uint256 fee = _positiveYield.mulWadDown(_performanceFee);
             if (fee > 0) {
+                // forge-lint: disable-next-line(erc20-unchecked-transfer)
                 ReceiptToken(receiptToken).transfer(performanceFeeRecipient, fee);
                 _positiveYield -= fee;
             }

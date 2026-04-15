@@ -25,13 +25,21 @@ contract FluidRewardsClaimer is CoreControlled {
     address public recipient;
 
     /// @notice fluid rewards claimer contract
-    address public constant FLUID_REWARDS_CONTRACT = 0x7060FE0Dd3E31be01EFAc6B28C8D38018fD163B0;
+    address public immutable FLUID_REWARDS_CONTRACT;
     /// @notice fluid reward token
-    address public constant FLUID_REWARD_TOKEN = 0x6f40d4A6237C257fff2dB00FA0510DeEECd303eb;
+    address public immutable FLUID_REWARD_TOKEN;
 
-    constructor(address _core, address _farmRegistry, address _recipient) CoreControlled(_core) {
+    constructor(
+        address _core,
+        address _farmRegistry,
+        address _recipient,
+        address _fluidRewardsContract,
+        address _fluidRewardToken
+    ) CoreControlled(_core) {
         farmRegistry = _farmRegistry;
         _setRecipient(_recipient);
+        FLUID_REWARDS_CONTRACT = _fluidRewardsContract;
+        FLUID_REWARD_TOKEN = _fluidRewardToken;
     }
 
     /// @notice sets the recipient of the Fluid rewards
@@ -46,7 +54,6 @@ contract FluidRewardsClaimer is CoreControlled {
     }
 
     /// @notice claims the Fluid rewards for the recipient
-    /// @dev note that this call is unprotected, anyone can make the farm claim its rewards.
     function claimFluidRewards(
         address _farm,
         uint256 _cumulativeAmount,

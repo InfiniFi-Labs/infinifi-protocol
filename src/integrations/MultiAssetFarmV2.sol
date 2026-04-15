@@ -8,7 +8,7 @@ import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
 import {CoreRoles} from "@libraries/CoreRoles.sol";
 import {Accounting} from "@finance/Accounting.sol";
-import {Farm, IFarm} from "@integrations/Farm.sol";
+import {Farm} from "@integrations/Farm.sol";
 
 /// @title MultiAssetFarmV2
 /// @notice InfiniFi Farm that can hold multiple asset tokens.
@@ -95,6 +95,7 @@ abstract contract MultiAssetFarmV2 is Farm {
         for (uint256 i = 0; i < supportedAssets.length; i++) {
             if (supportedAssets[i] == assetToken) continue;
             uint256 balance = ERC20(supportedAssets[i]).balanceOf(address(this));
+            if (balance == 0) continue; // do not read price if the balance is 0 to save gas
             uint256 price = Accounting(accounting).price(supportedAssets[i]);
             assetTokenBalance += balance.mulDivDown(price, assetTokenPrice);
         }
@@ -193,6 +194,7 @@ abstract contract MultiAssetFarmV2 is Farm {
     /// @param _to The address to send the withdrawn tokens to
     function withdrawSecondaryAsset(address _asset, uint256 _amount, address _to)
         external
+        virtual
         onlyCoreRole(CoreRoles.FARM_MANAGER)
         whenNotPaused
     {
