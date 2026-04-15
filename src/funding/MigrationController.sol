@@ -5,7 +5,6 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
-import {Farm} from "@integrations/Farm.sol";
 import {EpochLib} from "@libraries/EpochLib.sol";
 import {FarmTypes} from "@libraries/FarmTypes.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
@@ -13,11 +12,8 @@ import {Accounting} from "@finance/Accounting.sol";
 import {ReceiptToken} from "@tokens/ReceiptToken.sol";
 import {FarmRegistry} from "@integrations/FarmRegistry.sol";
 import {CoreControlled} from "@core/CoreControlled.sol";
-import {MultiAssetFarm} from "@integrations/MultiAssetFarm.sol";
-import {PendleV2FarmV2} from "@integrations/farms/PendleV2FarmV2.sol";
 import {LockingController} from "@locking/LockingController.sol";
 import {IMaturityFarm, IFarm} from "@interfaces/IMaturityFarm.sol";
-import {IMintController, IAfterMintHook} from "@interfaces/IMintController.sol";
 
 /// @notice Migration Controller
 /// This contract allows users to migrate their funds from other protocols where
@@ -87,6 +83,9 @@ contract MigrationController is CoreControlled {
         uint256 _minMigrationAmount,
         uint256 _migrationFee
     ) external onlyCoreRole(CoreRoles.PROTOCOL_PARAMETERS) {
+        // down castings are safe because this is a configuration call that should be simulated
+        // by devs & peer reviewed before broadcasting onchain.
+        // forge-lint: disable-next-item(unsafe-typecast)
         MigrationConfig memory _config = MigrationConfig({
             selector: _selector,
             cap: uint112(_cap),
@@ -150,6 +149,8 @@ contract MigrationController is CoreControlled {
         LockingController(lockingController).createPosition(iusdAmount, _unwindingEpochs, _recipient);
 
         // update migrated amount
+        // casting to 'uint112' is safe because of the require above
+        // forge-lint: disable-next-line(unsafe-typecast)
         config[_farm][_token].migrated += uint112(iusdAmount);
 
         emit Migrated(block.timestamp, _recipient, _farm, _token, iusdAmount);

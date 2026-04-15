@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 /// @notice Holds a complete list of all roles which can be held by contracts inside the InfiniFi protocol.
 library CoreRoles {
     /// ----------- Core roles for access control --------------
-
     /// @notice the all-powerful role. Controls all other roles and protocol functionality.
     bytes32 internal constant GOVERNOR = keccak256("GOVERNOR");
 
@@ -27,11 +26,17 @@ library CoreRoles {
 
     /// ----------- Token Management ---------------------------
 
-    /// @notice can mint DebtToken arbitrarily
+    /// @notice can mint ReceiptToken arbitrarily
     bytes32 internal constant RECEIPT_TOKEN_MINTER = keccak256("RECEIPT_TOKEN_MINTER");
 
-    /// @notice can burn DebtToken tokens
+    /// @notice can burn ReceiptToken tokens
     bytes32 internal constant RECEIPT_TOKEN_BURNER = keccak256("RECEIPT_TOKEN_BURNER");
+
+    /// @notice can mint GovernanceToken arbitrarily
+    bytes32 internal constant GOVERNANCE_TOKEN_MINTER = keccak256("GOVERNANCE_TOKEN_MINTER");
+
+    /// @notice can burn GovernanceToken tokens
+    bytes32 internal constant GOVERNANCE_TOKEN_BURNER = keccak256("GOVERNANCE_TOKEN_BURNER");
 
     /// @notice can mint arbitrarily & burn held LockedPositionToken
     bytes32 internal constant LOCKED_TOKEN_MANAGER = keccak256("LOCKED_TOKEN_MANAGER");
@@ -64,6 +69,9 @@ library CoreRoles {
     /// can also deposit profits for distribution to end users.
     bytes32 internal constant FINANCE_MANAGER = keccak256("FINANCE_MANAGER");
 
+    /// @notice can accrue pending yield in the system
+    bytes32 internal constant ACCRUE_YIELD = keccak256("ACCRUE_YIELD");
+
     /// ----------- Timelock management ------------------------
     /// The hashes are the same as OpenZeppelins's roles in TimelockController
 
@@ -75,4 +83,14 @@ library CoreRoles {
 
     /// @notice can cancel actions in timelocks
     bytes32 internal constant CANCELLER_ROLE = keccak256("CANCELLER_ROLE");
+
+    /// ----------- Crosschain ------------------------
+
+    /// @notice controls bridging and messaging process
+    bytes32 internal constant OUTLAND_PORTAL = keccak256("OUTLAND_PORTAL");
+
+    /// @notice can execute operations required by offchain keeper
+    /// example is submitting burn proofs to circle gateway
+    /// portal should have keeper role as well
+    bytes32 internal constant OUTLAND_KEEPER = keccak256("OUTLAND_KEEPER");
 }

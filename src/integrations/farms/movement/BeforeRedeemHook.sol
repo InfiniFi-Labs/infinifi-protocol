@@ -102,16 +102,23 @@ contract BeforeRedeemHook is IBeforeRedeemHook, CoreControlled {
             }
 
             unchecked {
+                // casting to 'int256' is safe because type(int256).max is a very large amount of assets
+                // forge-lint: disable-start(unsafe-typecast)
                 int256 difference =
                     int256(_weights[index] * (_totalAssets - _amount)) - int256((farmBalance - _amount) * _totalPower);
+                // forge-lint: disable-end(unsafe-typecast)
 
                 if (difference < minChange) {
                     minChange = difference;
+                    // casting to 'int256' is safe because of the for loop can't be type(int256).max long
+                    // forge-lint: disable-next-line(unsafe-typecast)
                     targetIndex = int256(index);
                 }
             }
         }
 
+        // casting to 'uint256' is safe because of the ternary
+        // forge-lint: disable-next-line(unsafe-typecast)
         return targetIndex == -1 ? address(0) : _farms[uint256(targetIndex)];
     }
 

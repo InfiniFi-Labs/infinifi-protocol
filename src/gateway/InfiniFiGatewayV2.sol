@@ -122,6 +122,7 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
         YieldSharingV2 yieldSharing = YieldSharingV2(getAddress("yieldSharing"));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         iusd.transferFrom(msg.sender, address(this), _receiptTokens);
         iusd.approve(address(siusd), _receiptTokens);
         yieldSharing.distributeInterpolationRewards();
@@ -136,6 +137,7 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
         StakedToken siusd = StakedToken(getAddress("stakedToken"));
         YieldSharingV2 yieldSharing = YieldSharingV2(getAddress("yieldSharing"));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         siusd.transferFrom(msg.sender, address(this), _stakedTokens);
         yieldSharing.distributeInterpolationRewards();
         yieldSharing.setCanEnterOrExitStakedToken(true);
@@ -176,6 +178,7 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
             if (_zapFee != 0) {
                 uint256 fee = receiptTokens.mulWadDown(_zapFee);
                 receiptTokens -= fee;
+                // forge-lint: disable-next-line(erc20-unchecked-transfer)
                 iusd.transfer(getAddress("yieldSharing"), fee);
             }
         }
@@ -195,6 +198,7 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
         (uint256 receiptTokens, ReceiptToken iusd) = _zapToReceiptTokens(_token, _amount, _router, _routerData);
 
         // send iUSD to receiver
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         iusd.transfer(_to, receiptTokens);
         return receiptTokens;
     }
@@ -271,6 +275,7 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
         LockingController lockingController = LockingController(getAddress("lockingController"));
         YieldSharingV2 yieldSharing = YieldSharingV2(getAddress("yieldSharing"));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         siusd.transferFrom(msg.sender, address(this), _amount);
         yieldSharing.distributeInterpolationRewards();
         yieldSharing.setCanEnterOrExitStakedToken(true);
@@ -290,6 +295,7 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
         LockingController lockingController = LockingController(getAddress("lockingController"));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         iusd.transferFrom(msg.sender, address(this), _amount);
         iusd.approve(address(lockingController), _amount);
         lockingController.createPosition(_amount, _unwindingEpochs, _recipient);
@@ -299,6 +305,7 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
         LockingController lockingController = LockingController(getAddress("lockingController"));
         LockedPositionToken liusd = LockedPositionToken(lockingController.shareToken(_unwindingEpochs));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         liusd.transferFrom(msg.sender, address(this), _shares);
         liusd.approve(address(lockingController), _shares);
         lockingController.startUnwinding(_shares, _unwindingEpochs, msg.sender);
@@ -312,6 +319,7 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
         LockingController lockingController = LockingController(getAddress("lockingController"));
         LockedPositionToken liusd = LockedPositionToken(lockingController.shareToken(_oldUnwindingEpochs));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         liusd.transferFrom(msg.sender, address(this), _shares);
         liusd.approve(address(lockingController), _shares);
         lockingController.increaseUnwindingEpochs(_shares, _oldUnwindingEpochs, _newUnwindingEpochs, msg.sender);
@@ -322,14 +330,18 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
         whenNotPaused
         nonReentrant
     {
-        LockingController(getAddress("lockingController")).cancelUnwinding(
-            msg.sender, _unwindingTimestamp, _newUnwindingEpochs
-        );
+        LockingController(getAddress("lockingController"))
+            .cancelUnwinding(msg.sender, _unwindingTimestamp, _newUnwindingEpochs);
     }
 
     function withdraw(uint256 _unwindingTimestamp) external whenNotPaused nonReentrant {
         _revertIfThereAreUnaccruedLosses();
         LockingController(getAddress("lockingController")).withdraw(msg.sender, _unwindingTimestamp);
+    }
+
+    function withdraw(address _user, uint256 _unwindingTimestamp) external whenNotPaused nonReentrant {
+        _revertIfThereAreUnaccruedLosses();
+        LockingController(getAddress("lockingController")).withdraw(_user, _unwindingTimestamp);
     }
 
     function redeem(address _to, uint256 _amount, uint256 _minAssetsOut)
@@ -342,6 +354,7 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
         ReceiptToken iusd = ReceiptToken(getAddress("receiptToken"));
         RedeemController redeemController = RedeemController(getAddress("redeemController"));
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         iusd.transferFrom(msg.sender, address(this), _amount);
         iusd.approve(address(redeemController), _amount);
         uint256 assetsOut = redeemController.redeem(_to, _amount);
@@ -359,9 +372,8 @@ contract InfiniFiGatewayV2 is CoreControlled, ReentrancyGuardTransient {
         AllocationVoting.AllocationVote[] calldata _liquidVotes,
         AllocationVoting.AllocationVote[] calldata _illiquidVotes
     ) external whenNotPaused nonReentrant {
-        AllocationVoting(getAddress("allocationVoting")).vote(
-            msg.sender, _asset, _unwindingEpochs, _liquidVotes, _illiquidVotes
-        );
+        AllocationVoting(getAddress("allocationVoting"))
+            .vote(msg.sender, _asset, _unwindingEpochs, _liquidVotes, _illiquidVotes);
     }
 
     function multiVote(

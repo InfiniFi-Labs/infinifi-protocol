@@ -9,11 +9,9 @@ import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 import {IPPYLpOracle as IPendleOracle} from "@pendle/interfaces/IPPYLpOracle.sol";
 
 import {CoreRoles} from "@libraries/CoreRoles.sol";
-import {Accounting} from "@finance/Accounting.sol";
 import {CoWSwapBase} from "@integrations/CoWSwapBase.sol";
 import {IPendleV2FarmV3} from "@interfaces/IPendleV2FarmV3.sol";
 import {MultiAssetFarmV2} from "@integrations/MultiAssetFarmV2.sol";
-import {IMaturityFarm, IFarm} from "@interfaces/IMaturityFarm.sol";
 
 import {PendleStructGen} from "@libraries/PendleStructGen.sol";
 import {
@@ -246,6 +244,8 @@ contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPend
         _checkSlippageIn(_tokenIn, _amountIn, ptReceived);
 
         uint256 assetAmountIn = convert(_tokenIn, assetToken, _amountIn);
+        // casting to 'int256' is safe because type(int256).max is an irrealistically large amount of assetTokens
+        // forge-lint: disable-next-line(unsafe-typecast)
         _handleBalanceChange(int256(assetAmountIn));
 
         emit PTWrapped(block.timestamp, _tokenIn, _amountIn, ptReceived, assetAmountIn);
@@ -295,6 +295,8 @@ contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPend
         _checkSlippageOut(_tokenOut, _ptTokensIn, tokensOut);
 
         uint256 assetsOut = convert(_tokenOut, assetToken, tokensOut);
+        // casting to 'int256' is safe because type(int256).max is an irrealistically large amount of assetTokens
+        // forge-lint: disable-next-line(unsafe-typecast)
         _handleBalanceChange(-int256(assetsOut));
 
         emit PTUnwrapped(block.timestamp, _tokenOut, _ptTokensIn, tokensOut, assetsOut);
@@ -334,6 +336,8 @@ contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPend
 
         // tokens are returned from SY getTokensOut
         uint256 assetAmountIn = convert(_tokenIn, assetToken, _amountIn);
+        // casting to 'int256' is safe because type(int256).max is an irrealistically large amount of assetTokens
+        // forge-lint: disable-next-line(unsafe-typecast)
         _handleBalanceChange(int256(assetAmountIn));
 
         emit PTZappedIn(block.timestamp, _tokenIn, _amountIn, ptReceived, assetAmountIn);
@@ -375,6 +379,8 @@ contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPend
         _checkSlippageOut(_tokenOut, _ptTokensIn, tokensOut);
 
         uint256 assetsOut = convert(_tokenOut, assetToken, tokensOut);
+        // casting to 'int256' is safe because type(int256).max is an irrealistically large amount of assetTokens
+        // forge-lint: disable-next-line(unsafe-typecast)
         _handleBalanceChange(-int256(assetsOut));
 
         emit PTZappedOut(block.timestamp, _tokenOut, tokensOut, _ptTokensIn, assetsOut);
@@ -396,6 +402,8 @@ contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPend
 
         IERC20(PT).safeTransfer(ptReceiver, _amount);
 
+        // casting to 'int256' is safe because type(int256).max is an irrealistically large amount of PTs
+        // forge-lint: disable-next-line(unsafe-typecast)
         int256 assetsValue = _estimateAssetsValue(-int256(_amount));
         _handleBalanceChange(assetsValue);
 
@@ -403,6 +411,8 @@ contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPend
             PendleV2FarmV3(ptReceiver).reconcilePt();
         }
 
+        // casting to 'uint256' is safe because assetsValue must be <= 0 (since _amount >= 0 because it is unsigned)
+        // forge-lint: disable-next-line(unsafe-typecast)
         emit PTTransferred(block.timestamp, ptReceiver, _amount, uint256(-assetsValue));
     }
 
@@ -411,6 +421,8 @@ contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPend
     /// scenario where the actual PT balance differs from the tracked balance.
     function reconcilePt() external whenNotPaused nonReentrant {
         uint256 balanceOfPTs = PT.balanceOf(address(this));
+        // casting to 'int256' is safe because type(int256).max is an irrealistically large amount of PTs
+        // forge-lint: disable-next-line(unsafe-typecast)
         int256 ptDifference = int256(balanceOfPTs) - int256(totalReceivedPTs);
 
         uint256 ptDifferenceAbs = uint256(ptDifference > 0 ? ptDifference : -ptDifference);
@@ -494,8 +506,12 @@ contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPend
         uint256 currentAssets = totalWrappedAssets + interpolatedYield();
 
         if (_assetsIn > 0) {
+            // casting to 'uint256' is safe because of the if above
+            // forge-lint: disable-next-line(unsafe-typecast)
             currentAssets += uint256(_assetsIn);
         } else {
+            // casting to 'uint256' is safe because of the else above
+            // forge-lint: disable-next-line(unsafe-typecast)
             currentAssets = _safeSubtract(currentAssets, uint256(-_assetsIn));
         }
 
@@ -522,11 +538,17 @@ contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPend
         uint256 currentRatio = currentAssets.divWadUp(assetsAtMaturity);
 
         if (_ptAmount > 0) {
+            // casting to 'uint256' is safe because of the if above
+            // forge-lint: disable-next-line(unsafe-typecast)
             uint256 _assetAmount = uint256(_ptAmount).mulWadDown(currentRatio);
             return int256(convert(pivotToken, assetToken, _assetAmount));
         }
 
+        // casting to 'uint256' is safe because of the if/return above
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint256 assetAmount = uint256(-_ptAmount).mulWadDown(currentRatio);
+        // casting to 'int256' is safe because type(int256).max is an irrealistically large amount of assetTokens
+        // forge-lint: disable-next-line(unsafe-typecast)
         return -int256(convert(pivotToken, assetToken, assetAmount));
     }
 
@@ -582,7 +604,11 @@ contract PendleV2FarmV3 is MultiAssetFarmV2, CoWSwapBase, ReentrancyGuard, IPend
 
         uint256 balanceOfPTs = PT.balanceOf(address(this));
         if (balanceOfPTs != totalReceivedPTs) {
+            // casting to 'int256' is safe because type(int256).max is an irrealistically large amount of PTs
+            // forge-lint: disable-next-line(unsafe-typecast)
             int256 ptDifference = int256(balanceOfPTs) - int256(totalReceivedPTs);
+            // casting to 'uint256' is safe because of the ternary
+            // forge-lint: disable-next-line(unsafe-typecast)
             uint256 ptDifferenceAbs = uint256(ptDifference > 0 ? ptDifference : -ptDifference);
             require(ptDifferenceAbs <= ptThreshold, FarmNotReconciled(totalReceivedPTs, balanceOfPTs));
         }

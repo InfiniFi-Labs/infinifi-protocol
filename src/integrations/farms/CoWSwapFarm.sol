@@ -3,16 +3,12 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {GPv2Settlement} from "@cowprotocol/contracts/GPv2Settlement.sol";
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
-import {GPv2Order, IERC20 as ICoWERC20} from "@cowprotocol/contracts/libraries/GPv2Order.sol";
 
-import {IOracle} from "@interfaces/IOracle.sol";
 import {CoreRoles} from "@libraries/CoreRoles.sol";
-import {Accounting} from "@finance/Accounting.sol";
 import {MultiAssetFarm} from "@integrations/MultiAssetFarm.sol";
 import {CoWSwapFarmBase} from "@integrations/farms/CoWSwapFarmBase.sol";
-import {IMaturityFarm, IFarm} from "@interfaces/IMaturityFarm.sol";
+import {IMaturityFarm} from "@interfaces/IMaturityFarm.sol";
 
 /// @title CoWSwap Farm
 /// @notice This contract is used to deploy assets using CoW Swap limit orders. Funds are deposited in the farm

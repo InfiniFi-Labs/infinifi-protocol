@@ -83,6 +83,8 @@ contract JCurveSmoother is CoreControlled {
         // in case of losses, no smoothing is needed
         if (unaccruedYield > 0) {
             // amount of yield that should not go through smoothing
+            // casting to 'uint256' is safe because of 'if' above
+            // forge-lint: disable-next-line(unsafe-typecast)
             uint256 yieldToSmooth = uint256(unaccruedYield) - Math.min(uint256(unaccruedYield), _maxYield);
 
             if (yieldToSmooth > 0) {
@@ -90,6 +92,8 @@ contract JCurveSmoother is CoreControlled {
                 ReceiptToken(receiptToken).mint(address(this), yieldToSmooth);
 
                 // update the interpolation rate with the new balance
+                // casting to 'uint208' is safe because type(uint208).max is an irrealistically large rate
+                // forge-lint: disable-next-line(unsafe-typecast)
                 point.rate = uint208(vesting() * FixedPointMathLib.WAD / interpolationDuration);
                 point.lastAccrued = uint32(block.timestamp);
 

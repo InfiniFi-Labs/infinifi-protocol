@@ -6,7 +6,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
 import {CoreRoles} from "@libraries/CoreRoles.sol";
-import {IMaturityFarm} from "@interfaces/IMaturityFarm.sol";
 import {CoWSwapBase} from "@integrations/CoWSwapBase.sol";
 import {MultiAssetFarmV2} from "@integrations/MultiAssetFarmV2.sol";
 
@@ -36,6 +35,9 @@ contract SwapFarmV2 is MultiAssetFarmV2, CoWSwapBase {
     /// @param router The address of the router that was enabled/disabled
     /// @param enabled True if the router was enabled, false if disabled
     event SetEnabledRouter(uint256 timestamp, address router, bool enabled);
+
+    /// @notice Emitted when a pair configuration is set
+    event SetPairConfig(uint256 timestamp, address token1, address token2, uint256 cooldown, uint256 maxSlippage);
 
     /// @notice Thrown when a swap operation fails
     /// @param _reason The reason for the swap failure
@@ -130,11 +132,15 @@ contract SwapFarmV2 is MultiAssetFarmV2, CoWSwapBase {
         require(_cooldown <= _MAX_COOLDOWN, InvalidCooldown(_cooldown));
 
         bytes32 _key = getSwapPairKey(_tokenIn, _tokenOut);
+        // castings are safe because they are timestamps far in the future and config values
+        // forge-lint: disable-next-item(unsafe-typecast)
         pairConfig[_key] = PairConfig({
             lastSwap: uint64(block.timestamp - _cooldown - 1),
             cooldown: uint64(_cooldown),
             maxSlippage: uint128(_slippage)
         });
+
+        emit SetPairConfig(block.timestamp, _tokenIn, _tokenOut, _cooldown, _slippage);
     }
 
     /// @notice Generates a unique key for a token pair (direction-independent)
@@ -233,10 +239,7 @@ contract SwapFarmV2 is MultiAssetFarmV2, CoWSwapBase {
         tokensReceived = IERC20(_tokenOut).balanceOf(address(this)) - tokenOutBalanceBefore;
     }
 
-    function _postChecks(address _tokenIn, address _tokenOut, uint256 _amountIn, uint256 tokensReceived)
-        internal
-        view
-    {
+    function _postChecks(address _tokenIn, address _tokenOut, uint256 _amountIn, uint256 tokensReceived) internal view {
         require(tokensReceived > 0, InvalidAmountOut(0, tokensReceived));
         _checkSlippage(_tokenIn, _tokenOut, _amountIn, tokensReceived);
     }
@@ -246,7 +249,11 @@ contract SwapFarmV2 is MultiAssetFarmV2, CoWSwapBase {
     /// @param _tokenOut The output token address
     /// @param _amountIn The amount of input tokens
     /// @param _amountOut The actual amount of output tokens received
-    function _checkSlippage(address _tokenIn, address _tokenOut, uint256 _amountIn, uint256 _amountOut) internal view {
+    function _checkSlippage(address _tokenIn, address _tokenOut, uint256 _amountIn, uint256 _amountOut)
+        internal
+        view
+        virtual
+    {
         uint256 slippage = getSwapPairConfig(_tokenIn, _tokenOut).maxSlippage;
         uint256 minAmountOut = convert(_tokenIn, _tokenOut, _amountIn).mulWadDown(slippage);
         require(_amountOut >= minAmountOut, SlippageTooHigh(minAmountOut, _amountOut));
@@ -254,7 +261,7 @@ contract SwapFarmV2 is MultiAssetFarmV2, CoWSwapBase {
 
     /// @dev Internal function to validate CoW Protocol swap data
     /// @param _data The swap data to validate
-    function _validateSwap(CoWSwapData memory _data) internal view override {
+    function _validateSwap(CoWSwapData memory _data) internal view virtual override {
         // check slippage
         uint256 minOutSlippage = convert(_data.tokenIn, _data.tokenOut, _data.amountIn).mulWadDown(_data.maxSlippage);
         require(_data.minAmountOut > minOutSlippage, SlippageTooHigh(minOutSlippage, _data.minAmountOut));

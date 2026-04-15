@@ -104,25 +104,26 @@ contract FxSaveFarm is CoWSwapFarmBase, IMaturityFarm {
     /// @notice Stake fxUSD to fxSave.
     function stake(uint256 _amountIn) external whenNotPaused onlyCoreRole(CoreRoles.FARM_SWAP_CALLER) {
         IERC20(_FXUSD).forceApprove(_FXDIAMOND, _amountIn);
-        ISavingFxUSDFacet(_FXDIAMOND).depositToFxSave(
-            ISavingFxUSDFacet.ConvertInParams({
-                tokenIn: _FXUSD,
-                amount: _amountIn,
-                target: _FXMULTIPATHCONVERTER,
-                data: abi.encodeWithSignature(
-                    "convert(address,uint256,uint256,uint256[])",
-                    _FXUSD, // _tokenIn
-                    _amountIn, // _amount
-                    0, // _encoding
-                    new uint256[](0) // _routes
-                ),
-                minOut: 0,
-                signature: ""
-            }),
-            _FXUSD, // tokenOut
-            0, // minShares
-            address(this) // receiver
-        );
+        ISavingFxUSDFacet(_FXDIAMOND)
+            .depositToFxSave(
+                ISavingFxUSDFacet.ConvertInParams({
+                    tokenIn: _FXUSD,
+                    amount: _amountIn,
+                    target: _FXMULTIPATHCONVERTER,
+                    data: abi.encodeWithSignature(
+                        "convert(address,uint256,uint256,uint256[])",
+                        _FXUSD, // _tokenIn
+                        _amountIn, // _amount
+                        0, // _encoding
+                        new uint256[](0) // _routes
+                    ),
+                    minOut: 0,
+                    signature: ""
+                }),
+                _FXUSD, // tokenOut
+                0, // minShares
+                address(this) // receiver
+            );
     }
 
     /// @notice Begin unstaking process of fxSave to USDC+fxUSD.

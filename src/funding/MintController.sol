@@ -105,12 +105,7 @@ contract MintController is Farm, IMintController {
         ERC20(assetToken).safeTransfer(_to, _amount);
     }
 
-    function withdraw(uint256 amount, address to)
-        external
-        override
-        onlyCoreRole(CoreRoles.FARM_MANAGER)
-        whenNotPaused
-    {
+    function withdraw(uint256 amount, address to) external override onlyCoreRole(CoreRoles.FARM_MANAGER) whenNotPaused {
         // override to remove check on slippage
         _withdraw(amount, to);
     }

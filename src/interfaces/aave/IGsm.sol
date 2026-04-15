@@ -30,10 +30,7 @@ interface IGsm {
      * @return The gross amount of GHO
      * @return The fee amount in GHO, applied on top of gross amount of GHO
      */
-    function getGhoAmountForBuyAsset(uint256 minAssetAmount)
-        external
-        view
-        returns (uint256, uint256, uint256, uint256);
+    function getGhoAmountForBuyAsset(uint256 minAssetAmount) external view returns (uint256, uint256, uint256, uint256);
 
     /**
      * @notice Returns the total amount of GHO, gross amount and fee result of selling assets
@@ -43,10 +40,7 @@ interface IGsm {
      * @return The gross amount of GHO
      * @return The fee amount in GHO, applied to the gross amount of GHO
      */
-    function getGhoAmountForSellAsset(uint256 maxAssetAmount)
-        external
-        view
-        returns (uint256, uint256, uint256, uint256);
+    function getGhoAmountForSellAsset(uint256 maxAssetAmount) external view returns (uint256, uint256, uint256, uint256);
 
     /**
      * @notice Returns the amount of underlying asset, gross amount of GHO and fee result of buying assets
@@ -56,10 +50,7 @@ interface IGsm {
      * @return The gross amount of GHO corresponding to the given total amount of GHO
      * @return The fee amount in GHO, charged for buying assets
      */
-    function getAssetAmountForBuyAsset(uint256 maxGhoAmount)
-        external
-        view
-        returns (uint256, uint256, uint256, uint256);
+    function getAssetAmountForBuyAsset(uint256 maxGhoAmount) external view returns (uint256, uint256, uint256, uint256);
 
     /**
      * @notice Returns the amount of underlying asset, gross amount of GHO and fee result of selling assets
@@ -69,10 +60,7 @@ interface IGsm {
      * @return The gross amount of GHO corresponding to the given total amount of GHO
      * @return The fee amount in GHO, charged for selling assets
      */
-    function getAssetAmountForSellAsset(uint256 minGhoAmount)
-        external
-        view
-        returns (uint256, uint256, uint256, uint256);
+    function getAssetAmountForSellAsset(uint256 minGhoAmount) external view returns (uint256, uint256, uint256, uint256);
 
     /**
      * @notice Returns the remaining GSM exposure capacity

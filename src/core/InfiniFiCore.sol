@@ -25,6 +25,8 @@ contract InfiniFiCore is AccessControlEnumerable {
         _setRoleAdmin(CoreRoles.ENTRY_POINT, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.RECEIPT_TOKEN_MINTER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.RECEIPT_TOKEN_BURNER, CoreRoles.GOVERNOR);
+        _setRoleAdmin(CoreRoles.GOVERNANCE_TOKEN_MINTER, CoreRoles.GOVERNOR);
+        _setRoleAdmin(CoreRoles.GOVERNANCE_TOKEN_BURNER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.LOCKED_TOKEN_MANAGER, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.TRANSFER_RESTRICTOR, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.FARM_MANAGER, CoreRoles.GOVERNOR);
@@ -37,6 +39,9 @@ contract InfiniFiCore is AccessControlEnumerable {
         _setRoleAdmin(CoreRoles.PROPOSER_ROLE, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.EXECUTOR_ROLE, CoreRoles.GOVERNOR);
         _setRoleAdmin(CoreRoles.CANCELLER_ROLE, CoreRoles.GOVERNOR);
+        _setRoleAdmin(CoreRoles.OUTLAND_PORTAL, CoreRoles.GOVERNOR);
+        _setRoleAdmin(CoreRoles.OUTLAND_KEEPER, CoreRoles.GOVERNOR);
+        _setRoleAdmin(CoreRoles.ACCRUE_YIELD, CoreRoles.GOVERNOR);
     }
 
     /// @notice creates a new role to be maintained
