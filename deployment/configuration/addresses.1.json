@@ -20,7 +20,7 @@
     "name": "KEEPER_REBALANCE"
   },
   {
-    "addr": "0x0220646F0acdE22b6D46E69B0f65a6362B0dfeb0 ",
+    "addr": "0x0220646F0acdE22b6D46E69B0f65a6362B0dfeb0",
     "name": "KEEPER_LOSS"
   },
   {
@@ -164,16 +164,16 @@
     "name": "ERC20_MORPHO"
   },
   {
-    "addr": "0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b",
-    "name": "ERC20_SYRUPUSDC"
-  },
-  {
     "addr": "0x98A878b1Cd98131B271883B390f68D2c90674665",
     "name": "ERC20_APXUSD"
   },
   {
     "addr": "0x38EEb52F0771140d10c4E9A9a72349A329Fe8a6A",
     "name": "ERC20_APYUSD"
+  },
+  {
+    "addr": "0xe343167631d89B6Ffc58B88d6b7fB0228795491D",
+    "name": "ERC20_USDG"
   },
   {
     "addr": "0xb576765fB15505433aF24FEe2c0325895C559FB2",
@@ -624,10 +624,6 @@
     "name": "FARM_PENDLEV2V3_ALUSD_11DEC25"
   },
   {
-    "addr": "0xA2b300C5D0e9250F646B20ec924efaD36d19Ed91",
-    "name": "ORACLE_FACTORY"
-  },
-  {
     "addr": "0x936571f0A29F2aB25430a402Fd6c770A063A05f9",
     "name": "FARM_CAP"
   },
@@ -690,6 +686,10 @@
   {
     "addr": "0xa6cc2B925e5cb587a46e9e30b528e0F8bc4ffcCC",
     "name": "VAULT_7540_LPT"
+  },
+  {
+    "name": "VAULT_4626_SIUSDC",
+    "addr": "0xBD7C594305c60111470CB83d5871B09F112fD268"
   },
   {
     "addr": "0xC1eb6afBbA6C4743B6C4ED8E75F49395eb9253d0",
@@ -760,6 +760,10 @@
     "addr": "0x11F6FAb3f4D8635880C3e80cbae8AEF8136D4189"
   },
   {
+    "name": "FARM_PRIME_BROKER",
+    "addr": "0xfD1Ea12d29B90630b265DBbc6Af88266d1a83dE4"
+  },
+  {
     "name": "ORACLE_MIDAS_MGLOBAL",
     "addr": "0xd3a34f0416C455420b00B828e8f2C35944f6a6f5"
   },
@@ -770,6 +774,10 @@
   {
     "name": "FARM_MIDAS_MGLOBAL",
     "addr": "0x7373A7ce3C023C56Cb66747AFbdF827627D31679"
+  },
+  {
+    "name": "FARM_MIDAS_MGLOBAL_V2",
+    "addr": "0xF4Ea3Ec87B1c254f17a2Fb68164dB0CAf6c4cecF"
   },
   {
     "name": "FARM_CAP_LIQUID",
@@ -798,5 +806,37 @@
   {
     "name": "FARM_SILVER_ESCROW",
     "addr": "0x1532f095F8daa79d22a2475FD50c7109add394bB"
+  },
+  {
+    "name": "FARM_TEMP_OTC",
+    "addr": "0x04d5521ac09F8823338e8163Dd8BAdAEE39F3271"
+  },
+  {
+    "name": "FARM_MIDAS_MGLOBAL_V2",
+    "addr": "0xF4Ea3Ec87B1c254f17a2Fb68164dB0CAf6c4cecF"
+  },
+  {
+    "name": "FARM_PARETO_FALCONX_ESCROW",
+    "addr": "0x80931E6173d19f83ac09E759f6Ff2B3dAB72B902"
+  },
+  {
+    "name": "FARM_PARETO_FALCONX",
+    "addr": "0x9A0dB2aAC4e3a6a0324021d3a3Fe51Ddb18Bb885"
+  },
+  {
+    "name": "FARM_SILVER_SENIOR",
+    "addr": "0x79e1B8e45932A7C802eA3dAb3844e5DEa68d971f"
+  },
+  {
+    "name": "FARM_SILVER_SENIOR_ESCROW",
+    "addr": "0x6439eb9DADC7977BC1ADC027B10Fb1749AF869A5"
+  },
+  {
+    "name": "FARM_AAVE_V4_USDG",
+    "addr": "0x2CdF51ca20C2DD56480c35adEA667A6653Fb7657"
+  },
+  {
+    "name": "ORACLE_MIDAS_MGLOBAL_V3",
+    "addr": "0xEE10773A12Ee1C6819A1e1e3D047226c88A415A3"
   }
 ]
