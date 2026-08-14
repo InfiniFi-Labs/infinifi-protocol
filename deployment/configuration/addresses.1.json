@@ -12,6 +12,10 @@
     "name": "TEAM_MULTISIG"
   },
   {
+    "name": "FOUNDATION_MPC",
+    "addr": "0xd4c1dB74a9Bee4FfE305d2Af860FA6bDEB93Caca"
+  },
+  {
     "addr": "0x73455e5Fc7e4cbfDe65A72Ff17f76393DC6A2cbB",
     "name": "KEEPER_SWAP"
   },
@@ -22,6 +26,10 @@
   {
     "addr": "0x0220646F0acdE22b6D46E69B0f65a6362B0dfeb0",
     "name": "KEEPER_LOSS"
+  },
+  {
+    "addr": "0xDEc0de363DB32d5111AA6915d87f35A841201E6a",
+    "name": "KEEPER_OUTLAND"
   },
   {
     "addr": "0x383965940c950008a4B67BfaA477Fdf6AC91a7F7",
@@ -78,6 +86,10 @@
   {
     "addr": "0x8238884Ec9668Ef77B90C6dfF4D1a9F4F4823BFe",
     "name": "ERC20_USDO"
+  },
+  {
+    "addr": "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
+    "name": "ERC20_GHO"
   },
   {
     "addr": "0x7C1156E515aA1A2E851674120074968C905aAF37",
@@ -372,6 +384,10 @@
     "name": "FARM_SWAP_V2"
   },
   {
+    "addr": "0x90787c1b99F47EFfEE0db0aB9D4e33CdC3e6bFa7",
+    "name": "FARM_SWAP_V2B"
+  },
+  {
     "addr": "0xa5E274E6c2AbBd30E3A94e1A2dF7e6F5944797a8",
     "name": "AFTER_MINT_HOOK"
   },
@@ -410,6 +426,42 @@
   {
     "addr": "0xD0ec80032C0da717BD78B9569321D9069365241E",
     "name": "FLUID_REWARDS_CLAIMER"
+  },
+  {
+    "name": "OUTLAND_PORTAL_HUB_IMPLEMENTATION",
+    "addr": "0xe66110973b9aCC45204B4b1d0c59370466dd686b"
+  },
+  {
+    "name": "OUTLAND_PORTAL_HUB_PROXY",
+    "addr": "0x13025F34C1ec2A16bF68f3a3c4e986a3E85CED61"
+  },
+  {
+    "name": "OUTLAND_PORTAL_HUB_PROXY_ADMIN",
+    "addr": "0x866A8e35ABDfC42A7F8fd3be24c91EF5Fb039d0E"
+  },
+  {
+    "name": "OUTLAND_CONNECTOR_CCIP",
+    "addr": "0x65805D838a3504d283B92a623081E4b8c5583502"
+  },
+  {
+    "name": "GATEWAY_IMPLEMENTATION_V4",
+    "addr": "0x750136aC021a7149F0EE38141d0bA920Cca1fC5D"
+  },
+  {
+    "name": "FARM_OUTLAND_BASE",
+    "addr": "0x4cE95DaF47410f21008fDa15D27c801f462Fb872"
+  },
+  {
+    "name": "OUTLAND_VAULT_BASE",
+    "addr": "0xf0d0F1fdEE5595628De17B37E4134a5bAc4441C3"
+  },
+  {
+    "name": "ORACLE_OUTLAND_VAULT_BASE",
+    "addr": "0xf3803BAa417f93C2F80A9babEb8B724E56c44D10"
+  },
+  {
+    "name": "OUTLAND_RATE_FORWARDER_HELPER",
+    "addr": "0x2C5d2eF06B943262e51d9cEe696a914bf88B0498"
   },
   {
     "addr": "0xbFd5FC8DecA3C6128bfCE0FE46c25616811c3580",
@@ -525,6 +577,10 @@
   },
   {
     "addr": "0xc9c06c49Ed83d12BCA88BEd999d4920f049Beabc",
+    "name": "FARM_FXSAVE_DEPRECATED"
+  },
+  {
+    "addr": "0x78A31bD6cAca12BdF83F8A608076006C1F58F363",
     "name": "FARM_FXSAVE"
   },
   {
@@ -640,14 +696,6 @@
     "name": "ASSETS_CHECKER"
   },
   {
-    "addr": "0xBd2509BFBA7C5904723beC169CBDCb2bD379Da58",
-    "name": "OUTLAND_PORTAL_HUB_IMPLEMENTATION"
-  },
-  {
-    "addr": "0x114967080Cb4B456B8Ec9FDD343F0AE6428ec6b8",
-    "name": "OUTLAND_PORTAL_HUB_PROXY"
-  },
-  {
     "addr": "0xe945de0D08E2F39B0740FE2d6e50FE2Bb9751eA4",
     "name": "FARM_CAP_V2"
   },
@@ -666,14 +714,6 @@
   {
     "addr": "0x1a44076050125825900e736c501f859c50fE728c",
     "name": "LZ_ENDPOINT"
-  },
-  {
-    "addr": "0x54cB6634BE99dDF4c7502f8E8f3b8D3f27Ba0ee5",
-    "name": "OUTLAND_CONNECTOR_LZ"
-  },
-  {
-    "addr": "0x41193099288DF3F56a8323812E2844A7CfaFdd24",
-    "name": "OUTLAND_CONNECTOR_CCIP"
   },
   {
     "addr": "0xF56E946e92FeF6a050F482C560b5f8DcCB8163B3",
@@ -724,12 +764,20 @@
     "addr": "0x868C82b7BAa3675F9Da1404510DB60c1f6A7741A"
   },
   {
-    "name": "FARM_FASANARA_MGLOBAL",
+    "name": "FARM_FASANARA_MGLOBAL_DEPRECATED",
     "addr": "0x75B4D36302380099d94271Bfc8BDD12B07FFAD5f"
   },
   {
-    "name": "FARM_FASANARA_MGLOBAL_ESCROW",
+    "name": "FARM_FASANARA_MGLOBAL_ESCROW_DEPRECATED",
     "addr": "0x7c2B260b34a28978F4EDebD92e6C4d6f4CDDCee2"
+  },
+  {
+    "name": "FARM_FASANARA_MGLOBAL",
+    "addr": "0x2fa5E6C5549BEdF98A935Cac3BB4337459c74897"
+  },
+  {
+    "name": "FARM_FASANARA_MGLOBAL_ESCROW",
+    "addr": "0x7912Eaff92B2f5Bc64Cdd21C76d79FFC12eA855E"
   },
   {
     "name": "FARM_FALCONX",
@@ -808,7 +856,7 @@
     "addr": "0x1532f095F8daa79d22a2475FD50c7109add394bB"
   },
   {
-    "name": "FARM_TEMP_OTC",
+    "name": "FARM_TMP_STRCX_OTC",
     "addr": "0x04d5521ac09F8823338e8163Dd8BAdAEE39F3271"
   },
   {
@@ -838,5 +886,13 @@
   {
     "name": "ORACLE_MIDAS_MGLOBAL_V3",
     "addr": "0xEE10773A12Ee1C6819A1e1e3D047226c88A415A3"
+  },
+  {
+    "name": "FARM_FASANARA_MGLOBAL_TMP_REPO",
+    "addr": "0xDCc4992ee465aDF97A88746ecEc487a2b224f509"
+  },
+  {
+    "name": "FARM_FASANARA_MGLOBAL_TMP_REPO_ESCROW",
+    "addr": "0x725972290645dBbf2A45C11878C523f74F68f0bD"
   }
 ]
