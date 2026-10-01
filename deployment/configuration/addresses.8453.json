@@ -1,0 +1,122 @@
+[
+  {
+    "addr": "0xdecaDAc8778D088A30eE811b8Cc4eE72cED9Bf22",
+    "name": "DEPLOYER"
+  },
+  {
+    "addr": "0xA11Ce67cD9AD7295948A681617aA81E0523E0679",
+    "name": "ALICE"
+  },
+  {
+    "addr": "0x80608f852D152024c0a2087b16939235fEc2400c",
+    "name": "TEAM_MULTISIG"
+  },
+  {
+    "addr": "0xDEc0de363DB32d5111AA6915d87f35A841201E6a",
+    "name": "KEEPER_OUTLAND"
+  },
+  {
+    "addr": "0x383965940c950008a4B67BfaA477Fdf6AC91a7F7",
+    "name": "PAUSER_1"
+  },
+  {
+    "addr": "0xd53Ffb2DB125015aB4D461bAD3fA959Ef1a1e685",
+    "name": "PAUSER_2"
+  },
+  {
+    "addr": "0x0652412777f0c1F46b1164d5cdF3295Bdf43F2f2",
+    "name": "PAUSER_3"
+  },
+  {
+    "addr": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "name": "ERC20_USDC"
+  },
+  {
+    "addr": "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34",
+    "name": "OFT_USDE"
+  },
+  {
+    "addr": "0x1a44076050125825900e736c501f859c50fE728c",
+    "name": "LZ_ENDPOINT"
+  },
+  {
+    "addr": "0x881e3A65B4d4a04dD529061dd0071cf975F58bCD",
+    "name": "CCIP_ROUTER"
+  },
+  {
+    "name": "CORE",
+    "addr": "0x73aB24e6B1e4E106cf95F0FFD393F39365c88861"
+  },
+  {
+    "name": "FARM_REGISTRY",
+    "addr": "0x234546edBc8Bda7AE496a3eD6863640c407a0cEb"
+  },
+  {
+    "name": "MANUAL_REBALANCER",
+    "addr": "0xEA252aaF2b905589979CA3c84Ddb6Ef20db05cA1"
+  },
+  {
+    "name": "RECEIPT_TOKEN_IMPLEMENTATION",
+    "addr": "0xd4375B0e5Cfb94eeEcD350036F58228aE19D358A"
+  },
+  {
+    "name": "RECEIPT_TOKEN",
+    "addr": "0xF007bA6D86A46Ca9170C387Dd316c58d1c457751"
+  },
+  {
+    "name": "STAKED_TOKEN_IMPLEMENTATION",
+    "addr": "0xD8E9CE4e36B09D09596e8ec1B8AEeD94d8B84Ae5"
+  },
+  {
+    "name": "STAKED_TOKEN",
+    "addr": "0xA7845e48995A974bD1d130F4CA8C61fA47Fb4107"
+  },
+  {
+    "name": "ACCOUNTING",
+    "addr": "0x2ED079F04211baDA1a4e53F01782217334Cc28ce"
+  },
+  {
+    "name": "ORACLE_USDC",
+    "addr": "0xB1F3080511BA6A0D46c2F02e79d1780cA1810193"
+  },
+  {
+    "name": "FARM_STEAKHOUSE_USDC",
+    "addr": "0x127066E1982940c33fDC882D9c138296AB15F97f"
+  },
+  {
+    "name": "OUTLAND_PORTAL_OUTPOST_IMPLEMENTATION",
+    "addr": "0x1B6A0bc313f349e0f115e8F74396b4F579917d26"
+  },
+  {
+    "name": "OUTLAND_PORTAL_OUTPOST_PROXY",
+    "addr": "0x5855e6B9b3cD6960FA3E751A87353c3e40401b9B"
+  },
+  {
+    "name": "OUTLAND_CONNECTOR_CCIP",
+    "addr": "0x386DfFb5a31588aB56Df20C54Ec649F3B554362C"
+  },
+  {
+    "name": "GATEWAY_IMPLEMENTATION_V1",
+    "addr": "0x8AF0B7483b35B7cc6862756664Def8b6300a68E0"
+  },
+  {
+    "name": "GATEWAY_PROXY",
+    "addr": "0xA171c4a6e0d73DB80911A0C003508fB235F29b63"
+  },
+  {
+    "name": "SIUSDC_L2",
+    "addr": "0xDEb0284D7120D3005CB06961Cb1E651942ce765F"
+  },
+  {
+    "name": "SIUSDC_L2_IMPLEMENTATION",
+    "addr": "0xE5577BB6f0851c478eeCaC760Db7a621cC409056"
+  },
+  {
+    "name": "SIUSDC_L2_PROXY_ADMIN",
+    "addr": "0x3DFA206e9b56F7d301605E9F8c1E7DA02C6Cf9Ca"
+  },
+  {
+    "name": "SIUSDC_L2_DEPRECATED",
+    "addr": "0x2852fA3093a35553312741A5062913BA14592243"
+  }
+]
