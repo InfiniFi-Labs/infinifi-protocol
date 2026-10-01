@@ -1,0 +1,154 @@
+[
+  {
+    "addr": "0xdecaDAc8778D088A30eE811b8Cc4eE72cED9Bf22",
+    "name": "DEPLOYER"
+  },
+  {
+    "addr": "0xA11Ce67cD9AD7295948A681617aA81E0523E0679",
+    "name": "ALICE"
+  },
+  {
+    "addr": "0x80608f852D152024c0a2087b16939235fEc2400c",
+    "name": "TEAM_MULTISIG"
+  },
+  {
+    "addr": "0x73455e5Fc7e4cbfDe65A72Ff17f76393DC6A2cbB",
+    "name": "KEEPER_SWAP"
+  },
+  {
+    "addr": "0x2Cba0C86ED78f95fFF5fC0c18FE0E6343479aB1a",
+    "name": "KEEPER_REBALANCE"
+  },
+  {
+    "addr": "0xDEc0de363DB32d5111AA6915d87f35A841201E6a",
+    "name": "KEEPER_OUTLAND"
+  },
+  {
+    "addr": "0x383965940c950008a4B67BfaA477Fdf6AC91a7F7",
+    "name": "PAUSER_1"
+  },
+  {
+    "addr": "0xd53Ffb2DB125015aB4D461bAD3fA959Ef1a1e685",
+    "name": "PAUSER_2"
+  },
+  {
+    "addr": "0x0652412777f0c1F46b1164d5cdF3295Bdf43F2f2",
+    "name": "PAUSER_3"
+  },
+  {
+    "addr": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+    "name": "ERC20_USDC"
+  },
+  {
+    "addr": "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34",
+    "name": "OFT_USDE"
+  },
+  {
+    "addr": "0x1a44076050125825900e736c501f859c50fE728c",
+    "name": "LZ_ENDPOINT"
+  },
+  {
+    "addr": "0x33566fE5976AAa420F3d5C64996641Fc3858CaDB",
+    "name": "CCIP_ROUTER"
+  },
+  {
+    "name": "CORE",
+    "addr": "0xD8E9CE4e36B09D09596e8ec1B8AEeD94d8B84Ae5"
+  },
+  {
+    "name": "FARM_REGISTRY",
+    "addr": "0xA7845e48995A974bD1d130F4CA8C61fA47Fb4107"
+  },
+  {
+    "name": "MANUAL_REBALANCER",
+    "addr": "0x2ED079F04211baDA1a4e53F01782217334Cc28ce"
+  },
+  {
+    "name": "RECEIPT_TOKEN_IMPLEMENTATION",
+    "addr": "0xB1F3080511BA6A0D46c2F02e79d1780cA1810193"
+  },
+  {
+    "name": "RECEIPT_TOKEN",
+    "addr": "0x127066E1982940c33fDC882D9c138296AB15F97f"
+  },
+  {
+    "name": "STAKED_TOKEN_IMPLEMENTATION",
+    "addr": "0x1B6A0bc313f349e0f115e8F74396b4F579917d26"
+  },
+  {
+    "name": "STAKED_TOKEN",
+    "addr": "0x5855e6B9b3cD6960FA3E751A87353c3e40401b9B"
+  },
+  {
+    "name": "ACCOUNTING",
+    "addr": "0x386DfFb5a31588aB56Df20C54Ec649F3B554362C"
+  },
+  {
+    "name": "ORACLE_USDC",
+    "addr": "0x8AF0B7483b35B7cc6862756664Def8b6300a68E0"
+  },
+  {
+    "name": "FARM_AAVE_USDC",
+    "addr": "0xA171c4a6e0d73DB80911A0C003508fB235F29b63"
+  },
+  {
+    "name": "OUTLAND_PORTAL_OUTPOST_IMPLEMENTATION",
+    "addr": "0x2852fA3093a35553312741A5062913BA14592243"
+  },
+  {
+    "name": "OUTLAND_PORTAL_OUTPOST_PROXY",
+    "addr": "0x7092A43aE5407666C78dBEA657a1891f42b3dFcc"
+  },
+  {
+    "name": "OUTLAND_CONNECTOR_CCTP_CHAINLINK",
+    "addr": "0x1d95cC100D6Cd9C7BbDbD7Cb328d99b3D6037fF7"
+  },
+  {
+    "name": "GATEWAY_IMPLEMENTATION_V1",
+    "addr": "0xe1e9F8340042C39C60cc5Ae898da1b257b53f3dA"
+  },
+  {
+    "name": "GATEWAY_PROXY",
+    "addr": "0xc8ed9fCFF2f02D6b650519b2e38C6Bad3a7B75Fe"
+  },
+  {
+    "name": "SIUSDC_L2_IMPLEMENTATION",
+    "addr": "0xc21db21e688d8859ef9C0A3b961b95072C73555B"
+  },
+  {
+    "name": "SIUSDC_L2",
+    "addr": "0x43Cc956052D5693eF479eb21a80BfDcFe7d361e5"
+  },
+  {
+    "name": "SIUSDC_L2_PROXY_ADMIN",
+    "addr": "0xe5493a00ec23063Bd440EDa8ff2322722d4A6B3e"
+  },
+  {
+    "name": "ROUTER_KYBER",
+    "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  },
+  {
+    "name": "ERC20_WMON",
+    "addr": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A"
+  },
+  {
+    "name": "ERC4626_MORPHO_AUGUST_USDC_V2",
+    "addr": "0x80017bF0f793EBbE9679Cd61ff0e395B62CAbB59"
+  },
+  {
+    "name": "MERKL_DISTRIBUTOR",
+    "addr": "0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae"
+  },
+  {
+    "name": "ORACLE_WMON",
+    "addr": "0xE5577BB6f0851c478eeCaC760Db7a621cC409056"
+  },
+  {
+    "name": "ORACLE_MORPHO_AUGUST_USDC_V2",
+    "addr": "0xDEb0284D7120D3005CB06961Cb1E651942ce765F"
+  },
+  {
+    "name": "FARM_MORPHO_AUGUST_USDC_V2",
+    "addr": "0x1330902050dB4edAc0D9D8ca33FdAb5DbE986c9c"
+  }
+]

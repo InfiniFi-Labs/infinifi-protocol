@@ -452,11 +452,11 @@
     "addr": "0x4cE95DaF47410f21008fDa15D27c801f462Fb872"
   },
   {
-    "name": "OUTLAND_VAULT_BASE",
+    "name": "OUTLAND_VAULT_BASE_DEPRECATED",
     "addr": "0xf0d0F1fdEE5595628De17B37E4134a5bAc4441C3"
   },
   {
-    "name": "ORACLE_OUTLAND_VAULT_BASE",
+    "name": "ORACLE_OUTLAND_VAULT_BASE_DEPRECATED",
     "addr": "0xf3803BAa417f93C2F80A9babEb8B724E56c44D10"
   },
   {
@@ -660,6 +660,14 @@
     "name": "ORACLE_FACTORY"
   },
   {
+    "addr": "0x16A139dA0405Eb9777aDe4F5F0cc2416E5CD8619",
+    "name": "ASSETS_CHECKER"
+  },
+  {
+    "name": "HELPER_ESCROW_OPERATIONS",
+    "addr": "0xE62255B9d370e81EC4f96a3b1E4036087eB4871b"
+  },
+  {
     "addr": "0x2aB982944932dF7B593990c9d15AEe55a016dd03",
     "name": "FARM_PENDLEV2V3_CUSD_28JAN26"
   },
@@ -690,10 +698,6 @@
   {
     "addr": "0x817d93DbdFd8190bbef0a73fCf5Dd9DA5A87E032",
     "name": "FARM_AAVEV3_HORIZON_USDC"
-  },
-  {
-    "addr": "0x16A139dA0405Eb9777aDe4F5F0cc2416E5CD8619",
-    "name": "ASSETS_CHECKER"
   },
   {
     "addr": "0xe945de0D08E2F39B0740FE2d6e50FE2Bb9751eA4",
@@ -894,5 +898,33 @@
   {
     "name": "FARM_FASANARA_MGLOBAL_TMP_REPO_ESCROW",
     "addr": "0x725972290645dBbf2A45C11878C523f74F68f0bD"
+  },
+  {
+    "name": "FARM_MORPHO_STEAKHOUSE_CONFIDENTIAL_PRIME_USDC",
+    "addr": "0xFf4D036EA4CfaA2e6A37956CD97B927e589B9E13"
+  },
+  {
+    "name": "FARM_OUTLAND_BASE_V2",
+    "addr": "0xbD6c2d1C4809a5D8847FbA3a3cf7d6BDf6b6C3bA"
+  },
+  {
+    "name": "OUTLAND_VAULT_BASE",
+    "addr": "0x4197F2ADFCe9fDeB36B02e96737Ddf646C841e45"
+  },
+  {
+    "name": "ORACLE_OUTLAND_VAULT_BASE",
+    "addr": "0xAc5A7Cb1Be65EC91ea4B0DCc59690C1395366c3c"
+  },
+  {
+    "name": "FARM_OUTLAND_MONAD",
+    "addr": "0xA7c1DAEAA5D97e1319B4Ff6Cdf658F5C4582A27E"
+  },
+  {
+    "name": "OUTLAND_VAULT_MONAD",
+    "addr": "0x77776F422B7EB0A95ccD35fBd088A5957D4408eA"
+  },
+  {
+    "name": "ORACLE_OUTLAND_VAULT_MONAD",
+    "addr": "0x168DF792845BA1bd80d485399de63a4110b03242"
   }
 ]
