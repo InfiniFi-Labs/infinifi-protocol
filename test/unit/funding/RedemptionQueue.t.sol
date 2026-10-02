@@ -1,7 +1,6 @@
 pragma solidity 0.8.28;
 
-import {Fixture} from "@test/Fixture.t.sol";
-import {Test, console} from "@forge-std/Test.sol";
+import {Test} from "@forge-std/Test.sol";
 import {RedemptionQueue} from "@libraries/RedemptionQueue.sol";
 
 contract RedemptionQueueTest is Test {
@@ -46,8 +45,7 @@ contract RedemptionQueueTest is Test {
         for (uint256 i = 0; i < _targetLength; i++) {
             queue.pushBack(
                 RedemptionQueue.RedemptionRequest({
-                    recipient: makeAddr(string.concat("RECIPIENT_", vm.toString(i))),
-                    amount: 1e18
+                    recipient: makeAddr(string.concat("RECIPIENT_", vm.toString(i))), amount: 1e18
                 })
             );
         }
@@ -124,9 +122,93 @@ contract RedemptionQueueTest is Test {
     /// but because it's in an unchecked block, it will not revert, it will just set the _end to 0, reverting with the correct error
     /// forge-config: default.allow_internal_expect_revert = true
     function testPushBackQueueIsFull() public {
-        // use `forge inspect RedemptionQueueTest storage --pretty` to find the queue storage slot
-        // must set begin to 0 and end to type(uint128).max
-        vm.store(address(this), bytes32(uint256(32)), bytes32(uint256(type(uint128).max) << 128));
+        queue._begin = 0;
+        queue._end = type(uint128).max;
+        vm.expectRevert(abi.encodeWithSelector(RedemptionQueue.QueueIsFull.selector));
+        queue.pushBack(RedemptionQueue.RedemptionRequest({recipient: makeAddr("RECIPIENT"), amount: 1e18}));
+    }
+
+    function testFuzzQueueAcrossIndexWraparound(uint96[4] memory amounts, address[4] memory recipients) public {
+        queue._begin = type(uint128).max - 1;
+        queue._end = queue._begin;
+
+        for (uint256 i = 0; i < amounts.length; i++) {
+            queue.pushBack(RedemptionQueue.RedemptionRequest({recipient: recipients[i], amount: amounts[i]}));
+            assertEq(queue.length(), i + 1);
+        }
+        assertEq(queue._end, 2);
+        for (uint256 i = 0; i < amounts.length; i++) {
+            assertEq(queue.at(i).amount, amounts[i]);
+            assertEq(queue.at(i).recipient, recipients[i]);
+        }
+
+        for (uint256 i = 0; i < amounts.length; i++) {
+            assertEq(queue.front().amount, amounts[i]);
+            assertEq(queue.front().recipient, recipients[i]);
+            RedemptionQueue.RedemptionRequest memory request = queue.popFront();
+            assertEq(request.amount, amounts[i]);
+            assertEq(request.recipient, recipients[i]);
+            assertEq(queue.length(), amounts.length - i - 1);
+        }
+        assertTrue(queue.empty());
+        assertEq(queue._begin, queue._end);
+    }
+
+    function testFuzzUpdateFrontPreservesRecipientAndTail(uint96 amount, uint96 newAmount, address recipient) public {
+        queue.pushBack(RedemptionQueue.RedemptionRequest({recipient: recipient, amount: amount}));
+        queue.pushBack(RedemptionQueue.RedemptionRequest({recipient: makeAddr("TAIL"), amount: type(uint96).max}));
+
+        queue.updateFront(newAmount);
+
+        assertEq(queue.length(), 2);
+        assertEq(queue.front().amount, newAmount);
+        assertEq(queue.front().recipient, recipient);
+        assertEq(queue.at(1).amount, type(uint96).max);
+        assertEq(queue.at(1).recipient, makeAddr("TAIL"));
+        assertEq(queue.popFront().amount, newAmount);
+        assertEq(queue.front().amount, type(uint96).max);
+    }
+
+    function testFuzzDrainedQueueCanReuseWrappedIndices(uint96 amount, address recipient) public {
+        queue._begin = type(uint128).max;
+        queue._end = type(uint128).max;
+        queue.pushBack(RedemptionQueue.RedemptionRequest({recipient: makeAddr("OLD"), amount: 1e18}));
+        queue.popFront();
+        assertTrue(queue.empty());
+        assertEq(queue._begin, 0);
+        assertEq(queue._end, 0);
+
+        queue.pushBack(RedemptionQueue.RedemptionRequest({recipient: recipient, amount: amount}));
+        assertEq(queue.length(), 1);
+        assertEq(queue.front().amount, amount);
+        assertEq(queue.front().recipient, recipient);
+        queue.popFront();
+        assertTrue(queue.empty());
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testAtUsesRelativeIndexAfterPop() public {
+        queue.pushBack(RedemptionQueue.RedemptionRequest({recipient: makeAddr("FIRST"), amount: 1e18}));
+        queue.pushBack(RedemptionQueue.RedemptionRequest({recipient: makeAddr("SECOND"), amount: 2e18}));
+        queue.popFront();
+
+        assertEq(queue.at(0).recipient, makeAddr("SECOND"));
+        assertEq(queue.at(0).amount, 2e18);
+        vm.expectRevert(abi.encodeWithSelector(RedemptionQueue.IndexOutOfBounds.selector, 1));
+        queue.at(1);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testAtRejectsMaximumIndex() public {
+        queue.pushBack(RedemptionQueue.RedemptionRequest({recipient: makeAddr("RECIPIENT"), amount: 1e18}));
+        vm.expectRevert(abi.encodeWithSelector(RedemptionQueue.IndexOutOfBounds.selector, type(uint256).max));
+        queue.at(type(uint256).max);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testFullQueueRevertsAcrossWrappedIndices() public {
+        queue._begin = 7;
+        queue._end = 6;
         vm.expectRevert(abi.encodeWithSelector(RedemptionQueue.QueueIsFull.selector));
         queue.pushBack(RedemptionQueue.RedemptionRequest({recipient: makeAddr("RECIPIENT"), amount: 1e18}));
     }
