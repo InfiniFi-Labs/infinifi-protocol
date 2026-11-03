@@ -1,0 +1,262 @@
+[
+  {
+    "addr": "0xdecaDAc8778D088A30eE811b8Cc4eE72cED9Bf22",
+    "name": "DEPLOYER"
+  },
+  {
+    "addr": "0x50f9fEAB799b90DEeb4Ba718c629281bcbc45246",
+    "name": "PRIME_TEAM_MULTISIG"
+  },
+  {
+    "addr": "0xdf46673Cd1AE9F7CCE91F7602EA3318E197724d5",
+    "name": "PRIME_KEEPER_REBALANCE"
+  },
+  {
+    "addr": "0x91992420f3115269a76E29f0441D912cF515b3f0",
+    "name": "PRIME_KEEPER_SWAP"
+  },
+  {
+    "addr": "0x33566fE5976AAa420F3d5C64996641Fc3858CaDB",
+    "name": "CHAINLINK_CCIP_ROUTER"
+  },
+  {
+    "addr": "0x91992420f3115269a76E29f0441D912cF515b3f0",
+    "name": "PRIME_KEEPER_LOSS"
+  },
+  {
+    "addr": "0x0000000000000000000000000000000000000000",
+    "name": "ZERO_ADDRESS"
+  },
+  {
+    "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
+    "name": "ROUTER_KYBER"
+  },
+  {
+    "addr": "0x888888888889758F76e7103c6CbF23ABbF58F946",
+    "name": "ROUTER_PENDLE"
+  },
+  {
+    "addr": "0x383965940c950008a4B67BfaA477Fdf6AC91a7F7",
+    "name": "PRIME_PAUSER_1"
+  },
+  {
+    "addr": "0xd53Ffb2DB125015aB4D461bAD3fA959Ef1a1e685",
+    "name": "PRIME_PAUSER_2"
+  },
+  {
+    "addr": "0x6ef71cA9cD708883E129559F5edBFb9d9D5C6148",
+    "name": "PRIME_PAUSER_3"
+  },
+  {
+    "addr": "0x0652412777f0c1F46b1164d5cdF3295Bdf43F2f2",
+    "name": "PRIME_PAUSER_4"
+  },
+  {
+    "name": "ERC20_USDC",
+    "addr": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603"
+  },
+  {
+    "name": "CORE_IMPLEMENTATION",
+    "addr": "0x98d1B907cCf9939755E99a5bA4003696df22847B"
+  },
+  {
+    "name": "CORE_PROXY_ADMIN",
+    "addr": "0x1FF00a00F0B6321A9342FF09670fEac90c20a167"
+  },
+  {
+    "name": "CORE",
+    "addr": "0x449Ca7BB043BeCE2220682E49975BF0460b3a50c"
+  },
+  {
+    "name": "TIMELOCK_SHORT",
+    "addr": "0xad8e0C5db0057370e143A6a20Ee2720298aF8B26"
+  },
+  {
+    "name": "TIMELOCK_LONG",
+    "addr": "0xEC59c2fFf7FBA91f68a9563DFE84FD26EDC70A9A"
+  },
+  {
+    "name": "FARM_REGISTRY_IMPLEMENTATION",
+    "addr": "0x4D5A3BA32Aa1eE81968A411dB539a501993741CB"
+  },
+  {
+    "name": "FARM_REGISTRY",
+    "addr": "0x1B9C4d30C14D76bBe3a6c9a65fdAcC75bED303EF"
+  },
+  {
+    "name": "MANUAL_REBALANCER",
+    "addr": "0xCc0ec320213AB1F5f7BE5a47f209f1e12e48D545"
+  },
+  {
+    "name": "RECEIPT_TOKEN_IMPLEMENTATION",
+    "addr": "0x3D3DdcC3b3D27DE7250D67255a695d018eA7bbBa"
+  },
+  {
+    "name": "RECEIPT_TOKEN",
+    "addr": "0x4e846FA49d6ce0b7B8fa2Da4453BE7B580B39E2D"
+  },
+  {
+    "name": "STAKED_TOKEN_IMPLEMENTATION",
+    "addr": "0x29C0858E7Db796B2cb1DF4292A58469284594a0C"
+  },
+  {
+    "name": "STAKED_TOKEN",
+    "addr": "0x4bb6b76885ecb409C269842E251d38B329033a4F"
+  },
+  {
+    "name": "LOCKED_POSITION_TOKEN_IMPLEMENTATION",
+    "addr": "0x5Aa7fFe4ce249E3fd6c6b1aE0966d81C863C3F11"
+  },
+  {
+    "name": "LOCKED_POSITION_TOKEN_1",
+    "addr": "0x4c76c0E3E9D06841Fd8513f825fff7234F9fd322"
+  },
+  {
+    "name": "LOCKED_POSITION_TOKEN_4",
+    "addr": "0x668e522a5b59148f14Fd1a96AB2Be106dBDe8594"
+  },
+  {
+    "name": "LOCKED_POSITION_TOKEN_8",
+    "addr": "0x71222cFDC09ecd6C0a0693fe43792b2Bc06482B6"
+  },
+  {
+    "name": "LOCKED_POSITION_TOKEN_12",
+    "addr": "0xABD23956786a299de667a2A67Ef0540F866ddd7E"
+  },
+  {
+    "name": "LOCKED_POSITION_TOKEN_24",
+    "addr": "0x90E6ce98344f307D5fCFC55cF359350D5Cfe46cc"
+  },
+  {
+    "name": "UNWINDING_MODULE_IMPLEMENTATION",
+    "addr": "0xDa247f5e1BbDCBb6b9B90aB9789ce047Ed4bd9cc"
+  },
+  {
+    "name": "UNWINDING_MODULE",
+    "addr": "0x2c5B953917a3edDEf244dEA56a405B48C9323439"
+  },
+  {
+    "name": "LOCKING_CONTROLLER_IMPLEMENTATION",
+    "addr": "0xE9b891cF75c20c497DC3D4D3659579087445d7e6"
+  },
+  {
+    "name": "LOCKING_CONTROLLER",
+    "addr": "0x2713A94c3202ad7679c717A67E824c1f3EDEDe04"
+  },
+  {
+    "name": "YIELD_VESTING_ESCROW",
+    "addr": "0x2AccA011348EB2Cf8576256F06fc599360b3Fa65"
+  },
+  {
+    "name": "ACCOUNTING_IMPLEMENTATION",
+    "addr": "0x51Fc27C676C25C388735a51b760d64fE0acFf758"
+  },
+  {
+    "name": "ACCOUNTING",
+    "addr": "0xefE74995689f850123f67C73d61C64B03a7Dce17"
+  },
+  {
+    "name": "YIELD_SHARING_V3",
+    "addr": "0x2630bbF66fc421E42DfffD370994fE1938D05083"
+  },
+  {
+    "name": "YIELD_SHARING_PROXY",
+    "addr": "0x7693B3212c69d70c10Df2084FF2CAe35587af86d"
+  },
+  {
+    "name": "ORACLE_RECEIPT_TOKEN",
+    "addr": "0x944637950bd8e8E7952eB68Bde27bA9e56D1aFa2"
+  },
+  {
+    "name": "ORACLE_USDC",
+    "addr": "0x0E09AABaa9a67CE863B129e4f44c0ecbB261Cb99"
+  },
+  {
+    "name": "YIELD_SMOOTHER_IMPLEMENTATION",
+    "addr": "0xbFd5FC8DecA3C6128bfCE0FE46c25616811c3580"
+  },
+  {
+    "name": "YIELD_SMOOTHER",
+    "addr": "0x05b9E728e93D090Aa896B96D96Ad215b6Ca97e93"
+  },
+  {
+    "name": "ALLOCATION_VOTING_IMPLEMENTATION",
+    "addr": "0xCCD2D84b9Ecec546Eacb7fb3e17f74Ac86B33728"
+  },
+  {
+    "name": "ALLOCATION_VOTING",
+    "addr": "0xE611D7DF6f6988cFCe36030061764c686E6f725C"
+  },
+  {
+    "name": "MINT_CONTROLLER_IMPLEMENTATION",
+    "addr": "0x7a67248A73F9763203d4cd0fC8EF1c22C1B661C6"
+  },
+  {
+    "name": "MINT_CONTROLLER",
+    "addr": "0x6403d31054BEC3C4FaD36e757982d462BD0E5E2C"
+  },
+  {
+    "name": "REDEEM_CONTROLLER_IMPLEMENTATION",
+    "addr": "0x3A26D90D868c7d818EfA0FdE7B3bA65AC35c6809"
+  },
+  {
+    "name": "REDEEM_CONTROLLER",
+    "addr": "0x108450fb5420D1556fC17795dE1A12A2de523bAa"
+  },
+  {
+    "name": "AFTER_MINT_HOOK",
+    "addr": "0x02ceddfe4e4D40903389E7FDf8241B893b9807e3"
+  },
+  {
+    "name": "BEFORE_REDEEM_HOOK",
+    "addr": "0x23Ab00eB8b3D76C7EC43b182809c09AAEf525956"
+  },
+  {
+    "name": "EMERGENCY_WITHDRAWAL",
+    "addr": "0xea9C77a142F43b71b1b76345b13d899335688CF0"
+  },
+  {
+    "name": "MATURED_FARM_CLEANER",
+    "addr": "0xfBBc645d82CBBA7c20C37e477ef9C0032d7d7E51"
+  },
+  {
+    "name": "ASSETS_CHECKER",
+    "addr": "0x318E617B14fc46241E22cb4B932d3F4AbaD548b5"
+  },
+  {
+    "name": "CHAINLINK_FORMATTED_ORACLE_PIUSD",
+    "addr": "0xB6f30bBc3d1797216Dbbf8f62C47C30d9F980E7F"
+  },
+  {
+    "name": "CHAINLINK_FORMATTED_ORACLE_SPIUSD_V2",
+    "addr": "0x443e7F00B88ce7c1D9c0985d429e6688D3298b48"
+  },
+  {
+    "name": "GATEWAY_IMPLEMENTATION_V4",
+    "addr": "0xC84510c9A545199eBAC79e5Dc08E3337D90607cE"
+  },
+  {
+    "name": "GATEWAY_PROXY",
+    "addr": "0x76e91b79532c987eD0101E363cdb5e2ECa8154a3"
+  },
+  {
+    "name": "PL_SMOOTHER_HELPER",
+    "addr": "0xA4AD55daE871218d6782ab8DaafEB243183Ccdc7"
+  },
+  {
+    "name": "OUTLAND_PORTAL_HUB_IMPLEMENTATION",
+    "addr": "0x44f9499122a7434252Aa7Df727D9552c2ba9c03B"
+  },
+  {
+    "name": "OUTLAND_PORTAL_HUB_PROXY",
+    "addr": "0x5fEaad299BF772505e79250Ec58E28fdfdc52777"
+  },
+  {
+    "name": "OUTLAND_PORTAL_HUB_PROXY_ADMIN",
+    "addr": "0x0862388C7c2884F664143A6ecFBFD60D5C1f14D6"
+  },
+  {
+    "name": "OUTLAND_CONNECTOR_CCTP_CHAINLINK_MONAD",
+    "addr": "0x43ddb6634416bc232566d82Ce7F21bD127cd6bC2"
+  }
+]

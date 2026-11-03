@@ -12,23 +12,43 @@
     "name": "TEAM_MULTISIG"
   },
   {
+    "addr": "0x579B18E60d0245c0F66Fa9463610b15E226Ae8FD",
+    "name": "FOUNDATION_MULTISIG"
+  },
+  {
     "name": "FOUNDATION_MPC",
     "addr": "0xd4c1dB74a9Bee4FfE305d2Af860FA6bDEB93Caca"
   },
   {
     "addr": "0x73455e5Fc7e4cbfDe65A72Ff17f76393DC6A2cbB",
-    "name": "KEEPER_SWAP"
+    "name": "KEEPER_SWAP_DEPRECATED20261022"
   },
   {
     "addr": "0x2Cba0C86ED78f95fFF5fC0c18FE0E6343479aB1a",
-    "name": "KEEPER_REBALANCE"
+    "name": "KEEPER_REBALANCE_DEPRECATED20261022"
   },
   {
     "addr": "0x0220646F0acdE22b6D46E69B0f65a6362B0dfeb0",
-    "name": "KEEPER_LOSS"
+    "name": "KEEPER_LOSS_DEPRECATED20261022"
   },
   {
     "addr": "0xDEc0de363DB32d5111AA6915d87f35A841201E6a",
+    "name": "KEEPER_OUTLAND_DEPRECATED20261022"
+  },
+  {
+    "addr": "0x6c0D4a986571b3235fB0c565f40ed99026412fa5",
+    "name": "KEEPER_SWAP"
+  },
+  {
+    "addr": "0x402611788214527C17A1C1B62fCC3E452B6fF482",
+    "name": "KEEPER_REBALANCE"
+  },
+  {
+    "addr": "0x67bCb241bED7076C03Cf323E7dB839935f1283B5",
+    "name": "KEEPER_LOSS"
+  },
+  {
+    "addr": "0x612D2350E696c71ad5f043f2f4522484C7CA2B9a",
     "name": "KEEPER_OUTLAND"
   },
   {
@@ -188,8 +208,29 @@
     "name": "ERC20_USDG"
   },
   {
+
+    "addr": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    "name": "ERC20_DAI"
+  },
+  {
+    "name": "ERC20_AUSD",
+    "addr": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"
+  },
+  {
+    "name": "AGORA_AUSD_USDC_PAIR",
+    "addr": "0xa19d9d64ecE53A3a85e2c30725D31d09Bec157A9"
+  },
+  {
     "addr": "0xb576765fB15505433aF24FEe2c0325895C559FB2",
     "name": "ERC4626_MORPHO_SENTORA_PYUSD"
+  },
+  {
+    "name": "NS2_SENIOR_TRANCHE",
+    "addr": "0x3f06DB6334435fF4150e14aD69F6280BF8E8dA64"
+  },
+  {
+    "name": "NS2_SENIOR_OPERATOR",
+    "addr": "0x230f2E19D6c2Dc0c441c2150D4dD9d67B563A60C"
   },
   {
     "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
@@ -224,6 +265,10 @@
     "name": "TIMELOCK_LONG"
   },
   {
+    "name": "TIMELOCK_FOUNDATION",
+    "addr": "0xee529A21Cea25EFDF527e85BB4c597603E14CcfC"
+  },
+  {
     "addr": "0xF5f2718708f471e43968271956CC01aaA8c46119",
     "name": "FARM_REGISTRY"
   },
@@ -238,6 +283,34 @@
   {
     "addr": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB",
     "name": "STAKED_TOKEN"
+  },
+  {
+    "name": "GOVERNANCE_TOKEN",
+    "addr": "0xf40C07D7cd45F291B93cA674Db66a15C8a98957E"
+  },
+  {
+    "name": "LOCKED_GOVERNANCE_TOKEN_4",
+    "addr": "0x519b5e0e0976F7B7e89C6309Ac6e41d1eFda911C"
+  },
+  {
+    "name": "LOCKED_GOVERNANCE_TOKEN_8",
+    "addr": "0x4a0837DcB2d54814C9c2cAe54Ca604d186249513"
+  },
+  {
+    "name": "LOCKED_GOVERNANCE_TOKEN_13",
+    "addr": "0xb79A796cf79F05145C6Ed27eEA966A4043B9ad86"
+  },
+  {
+    "name": "LOCKED_GOVERNANCE_TOKEN_26",
+    "addr": "0xba957Ec0A01D1Eb211852E3766e18a2879B98F4D"
+  },
+  {
+    "name": "GOVERNANCE_UNWINDING_MODULE",
+    "addr": "0xc6738B9F6454bd6ffcD1E5ddb77FFA6E3F9f6a1f"
+  },
+  {
+    "name": "GOVERNANCE_LOCKING_CONTROLLER",
+    "addr": "0x68Afd386D2A882D3aFCBfC1586AE722568052FF6"
   },
   {
     "addr": "0x12b004719fb632f1E7c010c6F5D6009Fb4258442",
@@ -920,11 +993,35 @@
     "addr": "0xA7c1DAEAA5D97e1319B4Ff6Cdf658F5C4582A27E"
   },
   {
+    "name": "FARM_FASANARA_MFONE",
+    "addr": "0x92954E6BE8776e390eE365641F2a340BB449c368"
+  },
+  {
+    "name": "FARM_FASANARA_MFONE_ESCROW",
+    "addr": "0x88026cd3A7f9Ea4232db0Bc77dAEeeDe3e79C927"
+  },
+  {
     "name": "OUTLAND_VAULT_MONAD",
     "addr": "0x77776F422B7EB0A95ccD35fBd088A5957D4408eA"
   },
   {
     "name": "ORACLE_OUTLAND_VAULT_MONAD",
     "addr": "0x168DF792845BA1bd80d485399de63a4110b03242"
+  },
+  {
+    "name": "OUTLAND_CONNECTOR_CCTP_CHAINLINK_MONAD",
+    "addr": "0x3373784A7a52A07F9339aA8F60403420cC602c52"
+  },
+  {
+    "name": "POSITION_RESCUER",
+    "addr": "0x46c25fD4A470E4BEcc59029aC36E9b2b7477e905"
+  },
+  {
+    "name": "FARM_JETSTREAM",
+    "addr": "0x7e5d09F20267E4d319377F08f5E722200e47C4c7"
+  },
+  {
+    "name": "FARM_JETSTREAM_ESCROW",
+    "addr": "0x404AD869eb0B2E0A2869F708E805B5c628A37011"
   }
 ]
