@@ -1,0 +1,162 @@
+[
+  {
+    "addr": "0xdecaDAc8778D088A30eE811b8Cc4eE72cED9Bf22",
+    "name": "DEPLOYER"
+  },
+  {
+    "addr": "0x0000000000000000000000000000000000000000",
+    "name": "ZERO_ADDRESS"
+  },
+  {
+    "addr": "0x50f9fEAB799b90DEeb4Ba718c629281bcbc45246",
+    "name": "PRIME_TEAM_MULTISIG"
+  },
+  {
+    "addr": "0x383965940c950008a4B67BfaA477Fdf6AC91a7F7",
+    "name": "PRIME_PAUSER_1"
+  },
+  {
+    "addr": "0xd53Ffb2DB125015aB4D461bAD3fA959Ef1a1e685",
+    "name": "PRIME_PAUSER_2"
+  },
+  {
+    "addr": "0x6ef71cA9cD708883E129559F5edBFb9d9D5C6148",
+    "name": "PRIME_PAUSER_3"
+  },
+  {
+    "addr": "0x0652412777f0c1F46b1164d5cdF3295Bdf43F2f2",
+    "name": "PRIME_PAUSER_4"
+  },
+  {
+    "addr": "0x4F69eAB2a27DB3572ACf7e04DACD634ca9484855",
+    "name": "KEEPER_REBALANCE_KMS"
+  },
+  {
+    "addr": "0xCD10Bcb5E0dd54df5333Ab6185BD210CDcEA2AE1",
+    "name": "KEEPER_OUTLAND_KMS"
+  },
+  {
+    "addr": "0x88843C030f7aaF06690B2638B431Be6D92C0Af17",
+    "name": "KEEPER_LOSS_KMS"
+  },
+  {
+    "addr": "0x1CD138c85a81026692aa9571635aFDF6CA64BB7C",
+    "name": "KEEPER_SWAP_KMS"
+  },
+  {
+    "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "name": "ERC20_USDC"
+  },
+  {
+    "addr": "0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D",
+    "name": "CHAINLINK_CCIP_ROUTER"
+  },
+  {
+    "addr": "0x4B174afbeD7b98BA01F50E36109EEE5e6d327c32",
+    "name": "TIMELOCK_SHORT"
+  },
+  {
+    "addr": "0x3D18480CC32B6AB3B833dCabD80E76CfD41c48a9",
+    "name": "TIMELOCK_LONG"
+  },
+  {
+    "name": "CORE_IMPLEMENTATION",
+    "addr": "0x777a6E846Ef7Ff1e9De36cF09f10BBBb2D9F37be"
+  },
+  {
+    "name": "CORE",
+    "addr": "0x72d167bc119cBFd1249429Cd476f7cBc45C5a3D5"
+  },
+  {
+    "name": "FARM_REGISTRY_IMPLEMENTATION",
+    "addr": "0x19b813fC167d92b8D4986d85B74340d58c32f528"
+  },
+  {
+    "name": "FARM_REGISTRY",
+    "addr": "0xc85aAa8b7056c322faf9f7A407144033287e746d"
+  },
+  {
+    "name": "MANUAL_REBALANCER",
+    "addr": "0xb6f0ADC140a607c75E763F613571fdBd930125d3"
+  },
+  {
+    "name": "RECEIPT_TOKEN_IMPLEMENTATION",
+    "addr": "0x52ADA88BFbE02Df1cF719a170fa182fc4a7Fd5D8"
+  },
+  {
+    "name": "RECEIPT_TOKEN",
+    "addr": "0x458508bE631533A1fA8B68a0e85588Fd957086C8"
+  },
+  {
+    "name": "STAKED_TOKEN_IMPLEMENTATION",
+    "addr": "0xe7605Bd5282340C7601c98FC0996Fb518Ce6ea68"
+  },
+  {
+    "name": "STAKED_TOKEN",
+    "addr": "0xd904A6DB82D6bc8469f62F4A78Db3E7A5aCa8dcF"
+  },
+  {
+    "name": "ACCOUNTING",
+    "addr": "0x7ABeec148eDa9F352c827441a4A57cEC8FD7D5F2"
+  },
+  {
+    "name": "ORACLE_USDC",
+    "addr": "0x1A0E58A68FA32EDeD72566Ef7d3e667602C5e26C"
+  },
+  {
+    "name": "FARM_AAVE_USDC",
+    "addr": "0x9B9725578196C481096AAbECdc7FF35a23600ca6"
+  },
+  {
+    "name": "OUTLAND_PORTAL_OUTPOST_IMPLEMENTATION",
+    "addr": "0x227930BABF103F5A0391708211FEb2176aa7F1C0"
+  },
+  {
+    "name": "OUTLAND_PORTAL_OUTPOST_PROXY",
+    "addr": "0xdA440684c57651803a30d02e60f3A7617d7E054C"
+  },
+  {
+    "name": "OUTLAND_CONNECTOR_CCTP_CHAINLINK",
+    "addr": "0x6598F657C2696Cf0fcb6b42eB7650743c041aC22"
+  },
+  {
+    "name": "GATEWAY_IMPLEMENTATION_V1",
+    "addr": "0x48f0F9d66c7a14Fd126C1FEDfaAE7c714714aC6F"
+  },
+  {
+    "name": "GATEWAY_PROXY",
+    "addr": "0x554961cDC240Bf5e1901Cd21d523ca620294860E"
+  },
+  {
+    "name": "SIPIUSDC_L1_IMPLEMENTATION",
+    "addr": "0x66B09147070FAf716867b945c2ca7661F08De789"
+  },
+  {
+    "name": "SIPIUSDC_L1",
+    "addr": "0x57B8dEB6f61b7827431545872Eaf36739d0C721e"
+  },
+  {
+    "name": "SIPIUSDC_L1_PROXY_ADMIN",
+    "addr": "0xF7bae1fa346cc07A425750DF4107AAB501d3A609"
+  },
+  {
+    "name": "RWA_RATE_MANAGER",
+    "addr": "0x3De8f36c05af9934a3F536B0a2bd82852Ab5BC90"
+  },
+  {
+    "name": "FARM_MGLO",
+    "addr": "0x5cE3603C784Ca8fEf53bb6F699305f3B684f835D"
+  },
+  {
+    "name": "FARM_MGLO_ESCROW",
+    "addr": "0x5DA8Ed5c0ab380601eB4239F57716D193Abc3609"
+  },
+  {
+    "name": "FARM_MFONE",
+    "addr": "0xb6Dec2C7BBf46659828C668f79BFEA665A85Ba5e"
+  },
+  {
+    "name": "FARM_MFONE_ESCROW",
+    "addr": "0xCD73C5c3A716B6945112e89F3EE2e8ad82035F4D"
+  }
+]

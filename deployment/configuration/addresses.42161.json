@@ -1,0 +1,51 @@
+[
+	{
+		"addr": "0xA11Ce67cD9AD7295948A681617aA81E0523E0679",
+		"name": "DEPLOYER"
+	},
+	{
+		"addr": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+		"name": "ERC20_USDC"
+	},
+	{
+		"addr": "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34",
+		"name": "OFT_USDE"
+	},
+	{
+		"addr": "0x1a44076050125825900e736c501f859c50fE728c",
+		"name": "LZ_ENDPOINT"
+	},
+	{
+		"addr": "0x141fa059441E0ca23ce184B6A78bafD2A517DdE8",
+		"name": "CCIP_ROUTER"
+	},
+	{
+		"addr": "0x911C5Dddd29ee79a47635282b51757491a8dEAD7",
+		"name": "CORE"
+	},
+	{
+		"addr": "0x6BfCF3254ad6D5E063a0be5cf5BF23cBe995dEf8",
+		"name": "OUTLAND_PORTAL_MOCK"
+	},
+	{
+		"addr": "0xbF96f3a1c1F8319D8a794CDCadE9a3293e82E568",
+		"name": "OUTLAND_LZ_SENDER"
+	},
+	{
+		"addr": "0xA12af862cc1Fa8A20b48b89f2Ca4033dEb1aA6AB",
+		"name": "OUTLAND_LZ_RECEIVER"
+	},
+	{
+		"addr": "0x715209bC2555dE0D4a20F8AcAB509747a11c0a0E",
+		"name": "OUTLAND_CCIP_SENDER"
+	},
+	{
+		"addr": "0xB1d23F8C63d37AA49E36895dc2B5cd23576a15d3",
+		"name": "OUTLAND_CCIP_RECEIVER"
+	},
+	{
+		"addr": "0xBD1b48160210d3451ca9Cbfc4A98453B2aaB953B",
+		"name": "OUTLAND_CCIP_RECEIVER_V2"
+	}
+]
+

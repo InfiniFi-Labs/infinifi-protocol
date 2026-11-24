@@ -4,24 +4,32 @@
     "name": "DEPLOYER"
   },
   {
+    "name": "ALICE",
+    "addr": "0xA11Ce67cD9AD7295948A681617aA81E0523E0679"
+  },
+  {
     "addr": "0x50f9fEAB799b90DEeb4Ba718c629281bcbc45246",
     "name": "PRIME_TEAM_MULTISIG"
-  },
-  {
-    "addr": "0xdf46673Cd1AE9F7CCE91F7602EA3318E197724d5",
-    "name": "PRIME_KEEPER_REBALANCE"
-  },
-  {
-    "addr": "0x91992420f3115269a76E29f0441D912cF515b3f0",
-    "name": "PRIME_KEEPER_SWAP"
   },
   {
     "addr": "0x33566fE5976AAa420F3d5C64996641Fc3858CaDB",
     "name": "CHAINLINK_CCIP_ROUTER"
   },
   {
-    "addr": "0x91992420f3115269a76E29f0441D912cF515b3f0",
-    "name": "PRIME_KEEPER_LOSS"
+    "addr": "0x4F69eAB2a27DB3572ACf7e04DACD634ca9484855",
+    "name": "KEEPER_REBALANCE_KMS"
+  },
+  {
+    "addr": "0xCD10Bcb5E0dd54df5333Ab6185BD210CDcEA2AE1",
+    "name": "KEEPER_OUTLAND_KMS"
+  },
+  {
+    "addr": "0x88843C030f7aaF06690B2638B431Be6D92C0Af17",
+    "name": "KEEPER_LOSS_KMS"
+  },
+  {
+    "addr": "0x1CD138c85a81026692aa9571635aFDF6CA64BB7C",
+    "name": "KEEPER_SWAP_KMS"
   },
   {
     "addr": "0x0000000000000000000000000000000000000000",
@@ -258,5 +266,73 @@
   {
     "name": "OUTLAND_CONNECTOR_CCTP_CHAINLINK_MONAD",
     "addr": "0x43ddb6634416bc232566d82Ce7F21bD127cd6bC2"
+  },
+  {
+    "name": "RWA_RATE_MANAGER",
+    "addr": "0x550Fc257cB30f0CD7A95c59C6eFF2077b10F2eb0"
+  },
+  {
+    "name": "FARM_PRIME_MFONE",
+    "addr": "0xA8448Cb1B4Ff67eD1B979647b426715ecBD9aF77"
+  },
+  {
+    "name": "FARM_PRIME_MFONE_ESCROW",
+    "addr": "0xA19f14Ffb3Aff7404F8c4cBA311533eFAf1B5C31"
+  },
+  {
+    "name": "FARM_PRIME_MGLO",
+    "addr": "0x5F57E078FEB5Cb21983D0f710f6b376C0D0bd70c"
+  },
+  {
+    "name": "FARM_PRIME_MGLO_ESCROW",
+    "addr": "0xE191F092D423054ecbd5CCDe822D4dF43D9584ff"
+  },
+  {
+    "name": "FARM_PRIME_MHILS",
+    "addr": "0x43092C6828F923551C0a481B0FE500Ab6dd9F205"
+  },
+  {
+    "name": "FARM_PRIME_MHILS_ESCROW",
+    "addr": "0xaAabd15bCba0Bc879a83dd7926C8673F7A677a80"
+  },
+  {
+    "name": "FARM_OUTLAND_ETHEREUM",
+    "addr": "0x381ee19A2ccED3fA6fa000885D550108aFefc1fA"
+  },
+  {
+    "name": "OUTLAND_VAULT_ETHEREUM",
+    "addr": "0x506CDEc087940FB225fd154f0398FC7d20E84092"
+  },
+  {
+    "name": "ORACLE_OUTLAND_VAULT_ETHEREUM",
+    "addr": "0x20B7a78b5beFac90D715D258D80A47a119fd0ddC"
+  },
+  {
+    "name": "AFTER_MINT_HOOK_PRIORITY",
+    "addr": "0x26A9542ae0Fe1379E4612671479120C3782713D3"
+  },
+  {
+    "name": "BEFORE_REDEEM_HOOK_PRIORITY",
+    "addr": "0x5A8DC58146f0eA746eE3b5A1126eFdF6be970389"
+  },
+  {
+    "name": "ORACLE_AUSD",
+    "addr": "0x9F30507C264Cc6EB5bE35b18ff9AD7B4539Aa920"
+  },
+  {
+    "name": "FARM_AGORA_AUSD",
+    "addr": "0xaC32D46601e38d7fd9E06fdDB49ebA3eF0f6Eb25"
+  },
+  {
+    "name": "FARM_AAVE_USDC",
+    "addr": "0x3a417C79aF2e372e26a8cb376754789E9E20c250"
+  },
+  {
+    "name": "OUTLAND_RATE_FORWARDER_HELPER",
+    "addr": "0x5d1c15E83834B6d0915406F7e4B0944d9E0C5493"
+  },
+  {
+    "name": "SIUSDC",
+    "addr": "0x6492435AbC7b42f9Fb213969df0A32AD0994d95d"
   }
 ]

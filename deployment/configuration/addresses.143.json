@@ -12,16 +12,16 @@
     "name": "TEAM_MULTISIG"
   },
   {
-    "addr": "0x73455e5Fc7e4cbfDe65A72Ff17f76393DC6A2cbB",
-    "name": "KEEPER_SWAP"
-  },
-  {
     "addr": "0x2Cba0C86ED78f95fFF5fC0c18FE0E6343479aB1a",
     "name": "KEEPER_REBALANCE"
   },
   {
-    "addr": "0xDEc0de363DB32d5111AA6915d87f35A841201E6a",
+    "addr": "0x612D2350E696c71ad5f043f2f4522484C7CA2B9a",
     "name": "KEEPER_OUTLAND"
+  },
+  {
+    "addr": "0x6c0D4a986571b3235fB0c565f40ed99026412fa5",
+    "name": "KEEPER_SWAP"
   },
   {
     "addr": "0x383965940c950008a4B67BfaA477Fdf6AC91a7F7",
@@ -38,6 +38,10 @@
   {
     "addr": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
     "name": "ERC20_USDC"
+  },
+  {
+    "addr": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+    "name": "ERC20_AUSD"
   },
   {
     "addr": "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34",
@@ -128,6 +132,10 @@
     "addr": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   },
   {
+    "name": "AGORA_AUSD_USDC_PAIR",
+    "addr": "0xf33286E3222D1c829dACeac48c0Ec651F6452470"
+  },
+  {
     "name": "ERC20_WMON",
     "addr": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A"
   },
@@ -150,5 +158,25 @@
   {
     "name": "FARM_MORPHO_AUGUST_USDC_V2",
     "addr": "0x1330902050dB4edAc0D9D8ca33FdAb5DbE986c9c"
+  },
+  {
+    "name": "ERC20_AUSD",
+    "addr": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"
+  },
+  {
+    "name": "AGORA_AUSD_USDC_PAIR",
+    "addr": "0xf33286E3222D1c829dACeac48c0Ec651F6452470"
+  },
+  {
+    "name": "RWA_RATE_MANAGER",
+    "addr": "0xeDaB32518eeA23eA860Cb20fEEee66684e66774a"
+  },
+  {
+    "name": "FARM_PRIME_LOCKING",
+    "addr": "0x7035E9d08A71Dd4fFc0622C19C5035258Ae9A1e2"
+  },
+  {
+    "name": "FARM_PRIME_LOCKING_ESCROW",
+    "addr": "0xCefDdD47Ee5c1BC6985e90d6841D3eE74D63CF1f"
   }
 ]
