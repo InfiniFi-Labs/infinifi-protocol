@@ -52,6 +52,22 @@
     "name": "KEEPER_OUTLAND"
   },
   {
+    "addr": "0x25C3e012Ec7fbA1C1715c5aE85d4b4F22Cac0861",
+    "name": "KEEPER_SWAP_KMS"
+  },
+  {
+    "addr": "0xD1838881F9B0Be7e1cCf5054b9bd80dbaDa4374B",
+    "name": "KEEPER_REBALANCE_KMS"
+  },
+  {
+    "addr": "0x7BE461B12407F22196a80A85e6C897D1cEbcb891",
+    "name": "KEEPER_LOSS_KMS"
+  },
+  {
+    "addr": "0x0f016AD221a4dd49b54D3ee048918410a4fa2789",
+    "name": "KEEPER_OUTLAND_KMS"
+  },
+  {
     "addr": "0x383965940c950008a4B67BfaA477Fdf6AC91a7F7",
     "name": "PAUSER_1"
   },
@@ -152,6 +168,10 @@
     "name": "ERC20_RUSD"
   },
   {
+    "addr": "0x5086bf358635B81D8C47C66d1C8b9E567Db70c72",
+    "name": "ERC20_REUSD"
+  },
+  {
     "addr": "0xd3fD63209FA2D55B07A0f6db36C2f43900be3094",
     "name": "ERC20_WSRUSD"
   },
@@ -208,7 +228,6 @@
     "name": "ERC20_USDG"
   },
   {
-
     "addr": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
     "name": "ERC20_DAI"
   },
@@ -274,6 +293,10 @@
   },
   {
     "addr": "0x160300d5C1eA377B823127d2D6668D43DD5C1d8A",
+    "name": "MANUAL_REBALANCER_DEPRECATED"
+  },
+  {
+    "addr": "0x5fEaad299BF772505e79250Ec58E28fdfdc52777",
     "name": "MANUAL_REBALANCER"
   },
   {
@@ -311,6 +334,10 @@
   {
     "name": "GOVERNANCE_LOCKING_CONTROLLER",
     "addr": "0x68Afd386D2A882D3aFCBfC1586AE722568052FF6"
+  },
+  {
+    "name": "PERIODIC_SWAPPER_INFI",
+    "addr": "0xE5725fADc248aa7090F1bb603eb5654753ECb5d9"
   },
   {
     "addr": "0x12b004719fb632f1E7c010c6F5D6009Fb4258442",
@@ -441,6 +468,14 @@
     "name": "ORACLE_WSRUSD"
   },
   {
+    "name": "ORACLE_REUSD",
+    "addr": "0xC86Fb9B40E4C3eae6fe17D3AecDf12B721a89F02"
+  },
+  {
+    "addr": "0x1EA9F98cc9F22e67279EdFecb6c3A5950FeF1585",
+    "name": "ORACLE_INFI"
+  },
+  {
     "addr": "0x49FA678BB8B2F5F8089493a6f93e1bb8500FF853",
     "name": "ALLOCATION_VOTING"
   },
@@ -519,6 +554,10 @@
   {
     "name": "GATEWAY_IMPLEMENTATION_V4",
     "addr": "0x750136aC021a7149F0EE38141d0bA920Cca1fC5D"
+  },
+  {
+    "name": "INFIBRIDGE_TOKEN_POOL",
+    "addr": "0x8cdCa8BE287b2cA664043F4c75d9AD5128b864d4"
   },
   {
     "name": "FARM_OUTLAND_BASE",
@@ -619,10 +658,6 @@
   {
     "addr": "0x3881238c22E161Fa8e00590C76d549640bA7A0bA",
     "name": "FARM_ETHENA"
-  },
-  {
-    "addr": "0x5fEaad299BF772505e79250Ec58E28fdfdc52777",
-    "name": "MANUAL_REBALANCER_V2"
   },
   {
     "addr": "0x3d627013d54388B3Fc5A9De153C4544c0Bc4AF13",
@@ -787,6 +822,18 @@
   {
     "addr": "0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D",
     "name": "CHAINLINK_CCIP_ROUTER"
+  },
+  {
+    "addr": "0x411dE17f12D1A34ecC7F45f49844626267c75e81",
+    "name": "CHAINLINK_CCIP_RMN_PROXY"
+  },
+  {
+    "addr": "0xb22764f98dD05c789929716D677382Df22C05Cb6",
+    "name": "CHAINLINK_CCIP_TOKEN_ADMIN_REGISTRY"
+  },
+  {
+    "addr": "0x4855174E9479E211337832E109E7721d43A4CA64",
+    "name": "CHAINLINK_CCIP_REGISTRY_MODULE_OWNER"
   },
   {
     "addr": "0x1a44076050125825900e736c501f859c50fE728c",
@@ -1013,15 +1060,47 @@
     "addr": "0x3373784A7a52A07F9339aA8F60403420cC602c52"
   },
   {
+    "name": "FARM_PENDLEV3_REUSD_10DEC26",
+    "addr": "0xe9E44C0A68C49aDe51CdA5e027909C5996B5c71a"
+  },
+  {
     "name": "POSITION_RESCUER",
     "addr": "0x46c25fD4A470E4BEcc59029aC36E9b2b7477e905"
   },
   {
-    "name": "FARM_JETSTREAM",
+    "name": "ORACLE_USD3",
+    "addr": "0x87184d7406dc042fea4df430f41d256224cfe1ff"
+  },
+  {
+    "name": "FARM_PENDLEV3_3JANE_DEC26",
+    "addr": "0xCb21f353633044531f1C0886994DFeA8903d3A9C"
+  },
+  {
+    "name": "FARM_JETSTREAM_DEPRECATED",
     "addr": "0x7e5d09F20267E4d319377F08f5E722200e47C4c7"
   },
   {
-    "name": "FARM_JETSTREAM_ESCROW",
+    "name": "FARM_JETSTREAM_ESCROW_DEPRECATED",
     "addr": "0x404AD869eb0B2E0A2869F708E805B5c628A37011"
+  },
+  {
+    "name": "FARM_JETSTREAM",
+    "addr": "0xf29E7a84de6B5efF82eb31A82FfE9CBB97C16639"
+  },
+  {
+    "name": "FARM_JETSTREAM_ESCROW",
+    "addr": "0x4a17ed3Fb3D8768B2A05Db6F1d1CFAE108c6Be44"
+  },
+  {
+    "name": "AFTER_MINT_HOOK_PRIORITY",
+    "addr": "0x20f1B8FB379d4cc07b917C68Ee855a1F35ef3Ed6"
+  },
+  {
+    "name": "BEFORE_REDEEM_HOOK_PRIORITY",
+    "addr": "0x006E2897400da44CF772cD2664C1a9e712755909"
+  },
+  {
+    "name": "FARM_MORPHO_ROCKAWAYX",
+    "addr": "0x149fC03599bE3B8eb9d24cDA01C83C69cF3F1980"
   }
 ]
