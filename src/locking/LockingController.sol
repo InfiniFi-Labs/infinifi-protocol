@@ -380,8 +380,12 @@ contract LockingController is CoreControlled {
         // compute split between locking users & unwinding users
         uint256 _globalRewardWeight = globalRewardWeight;
         uint256 unwindingRewardWeight = UnwindingModule(unwindingModule).totalRewardWeight();
-        uint256 unwindingRewards =
-            _amount.mulDivDown(unwindingRewardWeight, _globalRewardWeight + unwindingRewardWeight);
+        // When no user is locked and none is unwinding, both weights are zero and the
+        // mulDivDown below would divide by zero and revert, reverting the whole accrue().
+        // Skip the split in that case; the no-locker handling below leaves the rewards here.
+        uint256 unwindingRewards = unwindingRewardWeight == 0
+            ? 0
+            : _amount.mulDivDown(unwindingRewardWeight, _globalRewardWeight + unwindingRewardWeight);
         if (unwindingRewards > 0) {
             UnwindingModule(unwindingModule).depositRewards(unwindingRewards);
             require(IERC20(receiptToken).transfer(unwindingModule, unwindingRewards), TransferFailed());
